@@ -18,6 +18,7 @@ const tecnologiasController = require("./controllers/tecnologias/tecnologiasCont
 const tecnologiasProjetoController = require("./controllers/tecnologiasProjeto/tecnologiasProjetoController.js");
 const testesController = require("./controllers/testes/testesController.js");
 const treinamentosController = require("./controllers/treinamentos/treinamentosController.js");
+const chatController = require("./controllers/Chat/ChatGptController.js");
 
 const app = express();
 
@@ -170,6 +171,9 @@ app.get("/api/treinamentos/instrutor/:instrutor_id", treinamentosController.byIn
 app.get("/api/treinamentos/:id", treinamentosController.show);
 app.put("/api/treinamentos/:id", treinamentosController.update);
 app.delete("/api/treinamentos/:id", treinamentosController.delete);
+
+//rota chatGPT
+app.post("/api/chat/message", authenticateToken, chatController.sendMessage);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
