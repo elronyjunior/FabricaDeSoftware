@@ -121,7 +121,6 @@ app.delete("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoControl
 app.get("/api/requisitos", requisitosController.index);
 app.post("/api/requisitos", requisitosController.store);
 app.get("/api/requisitos/tipo/:tipo", requisitosController.byTipo);
-app.get("/api/requisitos/prioridade/:prioridade", requisitosController.byPrioridade);
 app.get("/api/requisitos/:id/projetos", requisitosController.projetos);
 app.get("/api/requisitos/:id", requisitosController.show);
 app.put("/api/requisitos/:id", requisitosController.update);
@@ -133,9 +132,9 @@ app.post("/api/requisitos-projeto", requisitosProjetoController.store);
 app.get("/api/requisitos-projeto/projeto/:projetoId", requisitosProjetoController.byProjeto);
 app.get("/api/requisitos-projeto/requisito/:requisitoId", requisitosProjetoController.byRequisito);
 app.get("/api/requisitos-projeto/status/:status", requisitosProjetoController.byStatus);
-app.get("/api/requisitos-projeto/:id", requisitosProjetoController.show);
-app.put("/api/requisitos-projeto/:id", requisitosProjetoController.update);
-app.delete("/api/requisitos-projeto/:id", requisitosProjetoController.delete);
+app.get("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.show);
+app.put("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.update);
+app.delete("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.delete);
 
 // Rotas da API de tecnologias
 app.get("/api/tecnologias", tecnologiasController.index);
