@@ -80,9 +80,9 @@ app.get("/api/contribuidores-projeto", contribuidoresProjetoController.index);
 app.post("/api/contribuidores-projeto", contribuidoresProjetoController.store);
 app.get("/api/contribuidores-projeto/projeto/:projetoId", contribuidoresProjetoController.byProjeto);
 app.get("/api/contribuidores-projeto/contribuidor/:contribuidorId", contribuidoresProjetoController.byContribuidor);
-app.get("/api/contribuidores-projeto/:id", contribuidoresProjetoController.show);
-app.put("/api/contribuidores-projeto/:id", contribuidoresProjetoController.update);
-app.delete("/api/contribuidores-projeto/:id", contribuidoresProjetoController.delete);
+app.get("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.show);
+app.put("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.update);
+app.delete("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.delete);
 
 // Rotas da API de documentos
 app.get("/api/documentos", documentosController.index);
