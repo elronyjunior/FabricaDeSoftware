@@ -1,11 +1,13 @@
 import 'package:fabrica_software_app/Widgets/Modal_de_criacao/components/Modal_step.dart';
 import 'package:fabrica_software_app/Widgets/Modal_de_criacao/components/Steps/Configuracao_Inicial_Projeto_step/Configuracao_Inicial_Projeto_step.dart';
+import 'package:fabrica_software_app/Widgets/Modal_de_criacao/components/Steps/Levantamentos_Requisitos_step/Levantamentos_Requisitos_step.dart';
 import 'package:flutter/material.dart';
 
 class ModalCriacaoProjetoProvider with ChangeNotifier {
 int _indice=0;
 final List<ModalStep> _lista= <ModalStep>[
- ConfiguracaoInicialProjetoStep()
+ ConfiguracaoInicialProjetoStep(),
+ LevantamentosRequisitosStep(),
 ];
 
 Widget returnBody(BuildContext context){

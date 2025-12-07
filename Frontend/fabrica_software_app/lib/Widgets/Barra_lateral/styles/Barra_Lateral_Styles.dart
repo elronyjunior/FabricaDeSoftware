@@ -3,5 +3,5 @@ class Barra_Lateral_Styles {
 static TextStyle TextStyleButtons=TextStyle(
   fontWeight: FontWeight.bold);
 
-static Color Usercolor=Color.fromARGB(255, 77, 12, 255);
+static Color Usercolor=const Color.fromARGB(255,75, 85, 99,);
 }

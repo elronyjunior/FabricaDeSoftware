@@ -26,6 +26,7 @@
     "google-auth-library": "^9.4.1",
     "jsonwebtoken": "^9.0.2",
     "method-override": "^3.0.0",
+    "openai": "^6.9.1",
     "pg": "^8.16.3"
   }
 }
