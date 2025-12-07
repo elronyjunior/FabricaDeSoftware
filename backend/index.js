@@ -113,9 +113,9 @@ app.get("/api/recursos-projeto", recursosProjetoController.index);
 app.post("/api/recursos-projeto", recursosProjetoController.store);
 app.get("/api/recursos-projeto/projeto/:projetoId", recursosProjetoController.byProjeto);
 app.get("/api/recursos-projeto/recurso/:recursoId", recursosProjetoController.byRecurso);
-app.get("/api/recursos-projeto/:id", recursosProjetoController.show);
-app.put("/api/recursos-projeto/:id", recursosProjetoController.update);
-app.delete("/api/recursos-projeto/:id", recursosProjetoController.delete);
+app.get("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.show);
+app.put("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.update);
+app.delete("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.delete);
 
 // Rotas da API de requisitos
 app.get("/api/requisitos", requisitosController.index);
@@ -150,9 +150,9 @@ app.delete("/api/tecnologias/:id", tecnologiasController.delete);
 app.get("/api/tecnologias-projeto", tecnologiasProjetoController.index);
 app.post("/api/tecnologias-projeto", tecnologiasProjetoController.store);
 app.get("/api/tecnologias-projeto/projeto/:projeto_id", tecnologiasProjetoController.byProjeto);
-app.get("/api/tecnologias-projeto/:id", tecnologiasProjetoController.show);
-app.put("/api/tecnologias-projeto/:id", tecnologiasProjetoController.update);
-app.delete("/api/tecnologias-projeto/:id", tecnologiasProjetoController.delete);
+app.get("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.show);
+app.put("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.update);
+app.delete("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.delete);
 
 // Rotas da API de testes
 app.get("/api/testes", testesController.index);
