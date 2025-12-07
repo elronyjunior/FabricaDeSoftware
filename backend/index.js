@@ -158,7 +158,6 @@ app.delete("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProje
 app.get("/api/testes", testesController.index);
 app.post("/api/testes", testesController.store);
 app.get("/api/testes/projeto/:projeto_id", testesController.byProjeto);
-app.get("/api/testes/status/:status", testesController.byStatus);
 app.get("/api/testes/:id", testesController.show);
 app.put("/api/testes/:id", testesController.update);
 app.delete("/api/testes/:id", testesController.delete);
@@ -166,8 +165,7 @@ app.delete("/api/testes/:id", testesController.delete);
 // Rotas da API de treinamentos
 app.get("/api/treinamentos", treinamentosController.index);
 app.post("/api/treinamentos", treinamentosController.store);
-app.get("/api/treinamentos/status/:status", treinamentosController.byStatus);
-app.get("/api/treinamentos/instrutor/:instrutor_id", treinamentosController.byInstrutor);
+app.get("/api/treinamentos/instrutor/:nomeInstrutor", treinamentosController.byInstrutor);
 app.get("/api/treinamentos/:id", treinamentosController.show);
 app.put("/api/treinamentos/:id", treinamentosController.update);
 app.delete("/api/treinamentos/:id", treinamentosController.delete);
