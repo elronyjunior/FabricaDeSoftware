@@ -1,10 +1,8 @@
 import 'package:fabrica_software_app/screens/Cadastro/Styles/style_cadastro.dart';
 import 'package:fabrica_software_app/screens/Gerenciar_Projetos/Gerenciar_projetos.dart';
-import 'package:fabrica_software_app/screens/Login/Styles/style_login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import '../../services/usuarios_service.dart';
 import '../../providers/auth_provider.dart';
 
 class CadastroScreen extends StatefulWidget {

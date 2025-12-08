@@ -6,45 +6,58 @@ import 'package:provider/provider.dart';
 import 'styles/Barra_Lateral_Styles.dart';
 
 class BarraLateral extends StatelessWidget {
-
   const BarraLateral({super.key});
-
-
 
   @override
   Widget build(BuildContext context) {
     final _authProvider = context.watch<AuthProvider>();
+
+    final String? rotaAtual = ModalRoute.of(context)?.settings.name;
+
+    final bool isAccountSelected = rotaAtual == '/Account';
+
+    final Color userTextColor = isAccountSelected 
+        ? const Color.fromARGB(255, 44, 100, 253) 
+        : Barra_Lateral_Styles.Usercolor; 
+
+    final Color userBgColor = isAccountSelected 
+        ? const Color.fromARGB(255, 235, 241, 255) 
+        : const Color.fromARGB(0, 43, 43, 43);
+
     return Drawer(
-      backgroundColor:Colors.white,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero, 
+        borderRadius: BorderRadius.zero,
       ),
       child: Column(
         children: <Widget>[
           Container(
-            height: 80.0, 
+            height: 80.0,
             width: double.infinity,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Color.fromARGB(255, 44, 100, 253),
             ),
-            padding: EdgeInsets.zero,
-            margin: EdgeInsets.zero,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Padding( 
+                Padding(
                   padding: const EdgeInsets.only(left: 16.0),
                   child: Row(children: <Widget>[
                     Image.asset('assets/image/icone_logo.png', height: 28),
                     const SizedBox(width: 8),
-                    Text(
+                    const Text(
                       'Fabrica Software',
-                      style: TextStyle(color: Colors.white,
-                      fontWeight:FontWeight.w500, 
-                      fontSize: 24),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 24),
                     ),
-                    IconButton(onPressed: (){Navigator.pop(context);}, icon: FaIcon(FontAwesomeIcons.x),color: Colors.white,iconSize: 15,)
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const FaIcon(FontAwesomeIcons.x),
+                      color: Colors.white,
+                      iconSize: 15,
+                    )
                   ]),
                 )
               ],
@@ -54,103 +67,152 @@ class BarraLateral extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
-                ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.folderOpen),
-                  title: Text('Projetos',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/Gerenciar_Projetos');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.folderOpen,
+                  text: 'Projetos',
+                  rotaDestino: '/Gerenciar_Projetos',
+                  rotaAtual: rotaAtual,
                 ),
-
-                ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.peopleGroup),
-                  title: Text('Equipe',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.peopleGroup,
+                  text: 'Equipe',
+                  rotaDestino: '/Equipe', 
+                  rotaAtual: rotaAtual,
                 ),
-
-                ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.chartBar),
-                  title: Text('Relatórios',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.chartBar,
+                  text: 'Relatórios',
+                  rotaDestino: '/Relatorios', 
+                  rotaAtual: rotaAtual,
                 ),
-
-                ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.usersGear),
-                  title: Text('Gestão de Usuários',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/Usuarios');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.usersGear,
+                  text: 'Gestão de Usuários',
+                  rotaDestino: '/Usuarios',
+                  rotaAtual: rotaAtual,
                 ),
-
-                ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.users),
-                  title: Text('Gestão de Clientes',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/Clientes');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.users,
+                  text: 'Gestão de Clientes',
+                  rotaDestino: '/Clientes',
+                  rotaAtual: rotaAtual,
                 ),
-
-                 ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.users),
-                  title: Text('Gestão de Recursos',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/Recursos');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.cubes,
+                  text: 'Gestão de Recursos',
+                  rotaDestino: '/Recursos',
+                  rotaAtual: rotaAtual,
                 ),
-                 ListTile(
-                  leading: const FaIcon(FontAwesomeIcons.users),
-                  title: Text('Gestão de Tecnologias',style: Barra_Lateral_Styles.TextStyleButtons,),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/Tecnologias');
-                  },
+                _buildMenuItem(
+                  context,
+                  icon: FontAwesomeIcons.microchip,
+                  text: 'Gestão de Tecnologias',
+                  rotaDestino: '/Tecnologias',
+                  rotaAtual: rotaAtual,
                 ),
               ],
             ),
           ),
-          Divider(),
+          const Divider(),
+          
           ListTile(
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 GestureDetector(
-                  child:MouseRegion(
-                    cursor:SystemMouseCursors.click,
-                      child:Row(
+                  onTap: () {
+                    if (!isAccountSelected) {
+                      Navigator.pop(context);
+                      Navigator.pushReplacementNamed(context, '/Account');
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: userBgColor, 
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          NivelIcon(nivel:'${_authProvider.userNivel}',color:Barra_Lateral_Styles.Usercolor,),
+                          NivelIcon(
+                            nivel: '${_authProvider.userNivel}',
+                            color: userTextColor, 
+                          ),
                           const SizedBox(width: 13),
-                          Text('${_authProvider.userNivel?.toUpperCase()}',style:TextStyle(color: Barra_Lateral_Styles.Usercolor,fontWeight: FontWeight.w500),),
-                        ]
+                          Text(
+                            '${_authProvider.userNivel?.toUpperCase()}',
+                            style: TextStyle(
+                                color: userTextColor, 
+                                fontWeight: FontWeight.w700),
+                          ),
+                        ],
                       ),
+                    ),
                   ),
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, '/Account');
-                  },
                 ),
                 IconButton(
-                  tooltip: 'Sair da conta',
-                  onPressed: () {
-                    _authProvider.logout();
-                     Navigator.pushReplacementNamed(context,'/');
-                  },
-                  icon: FaIcon(FontAwesomeIcons.rightFromBracket,color: const Color.fromARGB(255, 179, 45, 36),)
-                )
-              ]
+                    tooltip: 'Sair da conta',
+                    onPressed: () {
+                      _authProvider.logout();
+                      Navigator.pushReplacementNamed(context, '/');
+                    },
+                    icon: const FaIcon(
+                      FontAwesomeIcons.rightFromBracket,
+                      color: Color.fromARGB(255, 179, 45, 36),
+                    ))
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String text,
+    required String rotaDestino,
+    required String? rotaAtual,
+  }) {
+    final bool isSelected = rotaAtual == rotaDestino;
+    final Color itemColor = isSelected ? const Color.fromARGB(255, 44, 100, 253) : const Color.fromARGB(255,75, 85, 99,);
+    final Color bgColor = isSelected ? const Color.fromARGB(255, 235, 241, 255) : Colors.transparent;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: FaIcon(icon, color: itemColor, size: 20),
+        title: Text(
+          text,
+          style: Barra_Lateral_Styles.TextStyleButtons.copyWith(
+            color: itemColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        onTap: () {
+          if (!isSelected) {
+            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, rotaDestino);
+          } else {
+            Navigator.pop(context);
+          }
+        },
       ),
     );
   }

@@ -65,6 +65,7 @@ class DocumentosService extends BaseApiService {
     );
 
     final response = await request.send();
+    // ignore: unused_local_variable
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {

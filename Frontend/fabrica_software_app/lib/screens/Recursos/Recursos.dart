@@ -5,7 +5,6 @@ import 'package:fabrica_software_app/providers/recursos_provider.dart';
 import 'package:fabrica_software_app/screens/Recursos/components/RecursosRow.dart';
 import 'package:fabrica_software_app/screens/Recursos/components/Recursos_modal.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 class Recursos extends StatefulWidget {
@@ -27,22 +26,26 @@ class _RecursosState extends State<Recursos> {
   @override
   Widget build(BuildContext context) {
     final recursosProvider = context.watch<RecursosProvider>();
+    
     return Scaffold(
       drawer: BarraLateral(),
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: CustomAppBar(
         title: 'Gestão de Recursos',
         listaActions: [
-          ElevatedButton.icon(
-            onPressed: () => _abrirModalCriarRecurso(context), 
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Novo Recurso'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pink, // Cor rosa/magenta
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          Padding(
+            padding: const EdgeInsets.only(right: 20.0),
+            child: ElevatedButton.icon(
+              onPressed: () => _abrirModalCriarRecurso(context), 
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Novo Recurso'),
+              style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink, 
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
             ),
           ),
         ],
@@ -57,8 +60,9 @@ class _RecursosState extends State<Recursos> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 34),
-                  //TODO: Adicionar Filtro de Recursos aqui
+                  // TODO: Filtros aqui
                   const SizedBox(height: 24),
+                  
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -70,6 +74,7 @@ class _RecursosState extends State<Recursos> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // --- TÍTULO E CONTADOR ---
                         Padding(
                           padding: const EdgeInsets.all(20.0),
                           child: Row(
@@ -86,36 +91,32 @@ class _RecursosState extends State<Recursos> {
                             ],
                           ),
                         ),
+
+                        // --- CABEÇALHO DA TABELA ---
                         Container(
                           width: double.infinity,
                           color: Colors.grey[50],
                           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                          // Header da Tabela
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: null,
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Row(
-                                    children: [
-                                      Text(''), // Avatar
-                                      Expanded(child: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(flex: 2, child: Text('Tipo', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 1, child: Text('Disponível', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 2, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 1, child: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
-                              ],
-                            ),
+                          child: Row(
+                            children: const [
+                              Expanded(
+                                flex: 3,
+                                child: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              Expanded(flex: 2, child: Text('Tipo', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(flex: 1, child: Text('Disponível', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(flex: 2, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(
+                                flex: 1, 
+                                child: Center(
+                                  child: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))
+                                )
+                              ),
+                            ],
                           ),
                         ),
+
+                        // --- LISTAGEM ---
                         if (recursosProvider.isLoading)
                           const Center(
                             child: Padding(
@@ -138,7 +139,6 @@ class _RecursosState extends State<Recursos> {
                             ),
                           )
                         else
-                          // Lista de Recursos
                           Column(
                             children: recursosProvider.recursos!.map((recurso) {
                               return RecursoRow(
@@ -165,7 +165,6 @@ class _RecursosState extends State<Recursos> {
   }
 }
 
-// Funções para abrir o modal
 void _abrirModalRecurso(BuildContext context, Recurso recurso, RecursoModalMode modo) {
   showDialog(
     context: context,

@@ -18,6 +18,7 @@ const tecnologiasController = require("./controllers/tecnologias/tecnologiasCont
 const tecnologiasProjetoController = require("./controllers/tecnologiasProjeto/tecnologiasProjetoController.js");
 const testesController = require("./controllers/testes/testesController.js");
 const treinamentosController = require("./controllers/treinamentos/treinamentosController.js");
+const chatController = require("./controllers/Chat/ChatGptController.js");
 
 const app = express();
 
@@ -79,9 +80,9 @@ app.get("/api/contribuidores-projeto", contribuidoresProjetoController.index);
 app.post("/api/contribuidores-projeto", contribuidoresProjetoController.store);
 app.get("/api/contribuidores-projeto/projeto/:projetoId", contribuidoresProjetoController.byProjeto);
 app.get("/api/contribuidores-projeto/contribuidor/:contribuidorId", contribuidoresProjetoController.byContribuidor);
-app.get("/api/contribuidores-projeto/:id", contribuidoresProjetoController.show);
-app.put("/api/contribuidores-projeto/:id", contribuidoresProjetoController.update);
-app.delete("/api/contribuidores-projeto/:id", contribuidoresProjetoController.delete);
+app.get("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.show);
+app.put("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.update);
+app.delete("/api/contribuidores-projeto/:projetoId/:contribuidorId", contribuidoresProjetoController.delete);
 
 // Rotas da API de documentos
 app.get("/api/documentos", documentosController.index);
@@ -112,15 +113,14 @@ app.get("/api/recursos-projeto", recursosProjetoController.index);
 app.post("/api/recursos-projeto", recursosProjetoController.store);
 app.get("/api/recursos-projeto/projeto/:projetoId", recursosProjetoController.byProjeto);
 app.get("/api/recursos-projeto/recurso/:recursoId", recursosProjetoController.byRecurso);
-app.get("/api/recursos-projeto/:id", recursosProjetoController.show);
-app.put("/api/recursos-projeto/:id", recursosProjetoController.update);
-app.delete("/api/recursos-projeto/:id", recursosProjetoController.delete);
+app.get("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.show);
+app.put("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.update);
+app.delete("/api/recursos-projeto/:projetoId/:recursoId", recursosProjetoController.delete);
 
 // Rotas da API de requisitos
 app.get("/api/requisitos", requisitosController.index);
 app.post("/api/requisitos", requisitosController.store);
 app.get("/api/requisitos/tipo/:tipo", requisitosController.byTipo);
-app.get("/api/requisitos/prioridade/:prioridade", requisitosController.byPrioridade);
 app.get("/api/requisitos/:id/projetos", requisitosController.projetos);
 app.get("/api/requisitos/:id", requisitosController.show);
 app.put("/api/requisitos/:id", requisitosController.update);
@@ -132,9 +132,9 @@ app.post("/api/requisitos-projeto", requisitosProjetoController.store);
 app.get("/api/requisitos-projeto/projeto/:projetoId", requisitosProjetoController.byProjeto);
 app.get("/api/requisitos-projeto/requisito/:requisitoId", requisitosProjetoController.byRequisito);
 app.get("/api/requisitos-projeto/status/:status", requisitosProjetoController.byStatus);
-app.get("/api/requisitos-projeto/:id", requisitosProjetoController.show);
-app.put("/api/requisitos-projeto/:id", requisitosProjetoController.update);
-app.delete("/api/requisitos-projeto/:id", requisitosProjetoController.delete);
+app.get("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.show);
+app.put("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.update);
+app.delete("/api/requisitos-projeto/:projetoId/:requisitoId", requisitosProjetoController.delete);
 
 // Rotas da API de tecnologias
 app.get("/api/tecnologias", tecnologiasController.index);
@@ -149,15 +149,14 @@ app.delete("/api/tecnologias/:id", tecnologiasController.delete);
 app.get("/api/tecnologias-projeto", tecnologiasProjetoController.index);
 app.post("/api/tecnologias-projeto", tecnologiasProjetoController.store);
 app.get("/api/tecnologias-projeto/projeto/:projeto_id", tecnologiasProjetoController.byProjeto);
-app.get("/api/tecnologias-projeto/:id", tecnologiasProjetoController.show);
-app.put("/api/tecnologias-projeto/:id", tecnologiasProjetoController.update);
-app.delete("/api/tecnologias-projeto/:id", tecnologiasProjetoController.delete);
+app.get("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.show);
+app.put("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.update);
+app.delete("/api/tecnologias-projeto/:projetoId/:tecnologiaId", tecnologiasProjetoController.delete);
 
 // Rotas da API de testes
 app.get("/api/testes", testesController.index);
 app.post("/api/testes", testesController.store);
 app.get("/api/testes/projeto/:projeto_id", testesController.byProjeto);
-app.get("/api/testes/status/:status", testesController.byStatus);
 app.get("/api/testes/:id", testesController.show);
 app.put("/api/testes/:id", testesController.update);
 app.delete("/api/testes/:id", testesController.delete);
@@ -165,11 +164,13 @@ app.delete("/api/testes/:id", testesController.delete);
 // Rotas da API de treinamentos
 app.get("/api/treinamentos", treinamentosController.index);
 app.post("/api/treinamentos", treinamentosController.store);
-app.get("/api/treinamentos/status/:status", treinamentosController.byStatus);
-app.get("/api/treinamentos/instrutor/:instrutor_id", treinamentosController.byInstrutor);
+app.get("/api/treinamentos/instrutor/:nomeInstrutor", treinamentosController.byInstrutor);
 app.get("/api/treinamentos/:id", treinamentosController.show);
 app.put("/api/treinamentos/:id", treinamentosController.update);
 app.delete("/api/treinamentos/:id", treinamentosController.delete);
+
+//rota chatGPT
+app.post("/api/chat/message", authenticateToken, chatController.sendMessage);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

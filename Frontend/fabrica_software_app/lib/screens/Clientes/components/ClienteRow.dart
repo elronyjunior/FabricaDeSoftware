@@ -106,7 +106,7 @@ class ClienteRow extends StatelessWidget {
           Expanded(
             flex: 1,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end, // Empurra para a direita
+              mainAxisAlignment: MainAxisAlignment.center, // Empurra para a direita
               children: [
                 _ActionButton(icon: FontAwesomeIcons.solidEye, onTap: onView, color: Colors.black54),
                 const SizedBox(width: 8),

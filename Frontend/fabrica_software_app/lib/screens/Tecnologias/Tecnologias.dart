@@ -4,7 +4,6 @@ import 'package:fabrica_software_app/screens/Tecnologias/components/TecnologiaRo
 import 'package:fabrica_software_app/screens/Tecnologias/components/Tecnologia_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// Substitua pelos seus widgets de AppBar e Drawer
 import 'package:fabrica_software_app/Widgets/App_bar/App_bar.dart'; 
 import 'package:fabrica_software_app/Widgets/Barra_lateral/Barra_Lateral.dart';
 
@@ -27,22 +26,26 @@ class _TecnologiasState extends State<Tecnologias> {
   @override
   Widget build(BuildContext context) {
     final tecnologiasProvider = context.watch<TecnologiasProvider>();
+    
     return Scaffold(
       drawer: BarraLateral(),
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: CustomAppBar(
         title: 'Gestão de Tecnologias',
         listaActions: [
-          ElevatedButton.icon(
-            onPressed: () => _abrirModalCriarTecnologia(context), 
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Nova Tecnologia'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue, // Cor azul
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          Padding(
+            padding: const EdgeInsets.only(right: 20.0),
+            child: ElevatedButton.icon(
+              onPressed: () => _abrirModalCriarTecnologia(context), 
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Nova Tecnologia'),
+              style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pink, 
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
             ),
           ),
         ],
@@ -57,8 +60,9 @@ class _TecnologiasState extends State<Tecnologias> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 34),
-                  // TODO: Adicionar Filtro se necessário
+                  // TODO: Filtros aqui se necessário
                   const SizedBox(height: 24),
+                  
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -70,31 +74,45 @@ class _TecnologiasState extends State<Tecnologias> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // --- TÍTULO E CONTADOR ---
                         Padding(
                           padding: const EdgeInsets.all(20.0),
-                          child: Text(
-                            'Lista de Tecnologias',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Lista de Tecnologias',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                '${tecnologiasProvider.tecnologias?.length ?? 0} tecnologias encontradas',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
                           ),
                         ),
+
+                        // --- CABEÇALHO DA TABELA ---
                         Container(
                           width: double.infinity,
                           color: Colors.grey[50],
                           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                          // Cabeçalho da Tabela
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                            child: Row(
-                              children: const [
-                                Expanded(flex: 3, child: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 2, child: Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 4, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold))),
-                                Expanded(flex: 2, child: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))),
-                              ],
-                            ),
+                          child: Row(
+                            children: const [
+                              Expanded(flex: 3, child: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(flex: 2, child: Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(flex: 4, child: Text('Descrição', style: TextStyle(fontWeight: FontWeight.bold))),
+                              Expanded(
+                                flex: 2, 
+                                child: Center(
+                                  child: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold))
+                                )
+                              ),
+                            ],
                           ),
                         ),
-                        // Corpo da Tabela
+
+                        // --- LISTAGEM ---
                         if (tecnologiasProvider.isLoading)
                           const Center(
                             child: Padding(
@@ -142,7 +160,6 @@ class _TecnologiasState extends State<Tecnologias> {
   }
 }
 
-// Abre modal para Ver, Editar ou Deletar
 void _abrirModalTecnologia(BuildContext context, Tecnologia tecnologia, TecnologiaModalMode modo) {
   showDialog(
     context: context,
@@ -154,7 +171,6 @@ void _abrirModalTecnologia(BuildContext context, Tecnologia tecnologia, Tecnolog
   );
 }
 
-// Abre modal para Criar
 void _abrirModalCriarTecnologia(BuildContext context) {
   showDialog(
     context: context,

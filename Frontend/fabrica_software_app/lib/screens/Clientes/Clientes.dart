@@ -138,8 +138,7 @@ class _ClientesState extends State<Clientes> {
                                     // Flex 1: Ações (Alinhado à Direita)
                                     Expanded(
                                       flex: 1,
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
+                                      child: Center(
                                         child: Text('Ações', style: TextStyle(fontWeight: FontWeight.bold)),
                                       ),
                                     ),
