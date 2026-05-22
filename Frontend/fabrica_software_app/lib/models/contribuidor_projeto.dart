@@ -1,47 +1,33 @@
 class ContribuidorProjeto {
-  final int contribuidorId;
+  final int? id;
   final int projetoId;
-  final DateTime dataInicio;
-  final DateTime? dataFim;
+  final int contribuidorId;
+  final String? dataInicio;
 
-  ContribuidorProjeto({
-    required this.contribuidorId,
-    required this.projetoId,
-    required this.dataInicio,
-    this.dataFim,
-  });
+  ContribuidorProjeto({this.id, required this.projetoId, required this.contribuidorId, this.dataInicio});
 
   factory ContribuidorProjeto.fromJson(Map<String, dynamic> json) {
+    // Helper de segurança
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
     return ContribuidorProjeto(
-      contribuidorId: json['contribuidor_id'],
-      projetoId: json['projeto_id'],
-      dataInicio: DateTime.parse(json['data_inicio']),
-      dataFim: json['data_fim'] != null 
-          ? DateTime.parse(json['data_fim']) 
-          : null,
+      id: parseInt(json['id']), 
+      projetoId: parseInt(json['projeto_id']) ?? 0, // Garante int
+      contribuidorId: parseInt(json['contribuidor_id']) ?? 0, // Garante int
+      dataInicio: json['data_inicio'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'contribuidor_id': contribuidorId,
       'projeto_id': projetoId,
-      'data_inicio': dataInicio.toIso8601String(),
-      'data_fim': dataFim?.toIso8601String(),
+      'contribuidor_id': contribuidorId,
+      'data_inicio': dataInicio,
     };
-  }
-
-  ContribuidorProjeto copyWith({
-    int? contribuidorId,
-    int? projetoId,
-    DateTime? dataInicio,
-    DateTime? dataFim,
-  }) {
-    return ContribuidorProjeto(
-      contribuidorId: contribuidorId ?? this.contribuidorId,
-      projetoId: projetoId ?? this.projetoId,
-      dataInicio: dataInicio ?? this.dataInicio,
-      dataFim: dataFim ?? this.dataFim,
-    );
   }
 }

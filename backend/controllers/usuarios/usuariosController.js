@@ -27,7 +27,7 @@ exports.store = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, email, nivel, telefone`;
 
     // se nivel não for fornecido, usar colaborador como padrão
-    const nivelValor = nivel || 'colaborador';
+    const nivelValor = nivel || 'USUARIO';
 
     const result = await pool.query(insertQuery, [nome, email, senha, nivelValor, req.body.telefone || null]);
 

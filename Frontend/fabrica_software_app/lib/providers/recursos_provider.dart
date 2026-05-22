@@ -4,16 +4,19 @@ import '../services/recursos_service.dart';
 
 class RecursosProvider with ChangeNotifier {
   final _service = RecursosService.instance;
+  
   bool _isLoading = false;
   String? _error;
   List<Recurso>? _recursos;
   Recurso? _recursoSelecionado;
 
+  // Getters
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Recurso>? get recursos => _recursos;
   Recurso? get recursoSelecionado => _recursoSelecionado;
 
+  // Carrega TODOS os recursos (Uso: Menu Lateral)
   Future<void> carregarRecursos() async {
     _isLoading = true;
     _error = null;
@@ -21,6 +24,25 @@ class RecursosProvider with ChangeNotifier {
 
     try {
       _recursos = await _service.listarRecursos();
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- NOVO: Carrega recursos APENAS do projeto (Uso: Visualizar Projeto) ---
+  Future<void> carregarRecursosPorProjeto(int projetoId) async {
+    _isLoading = true;
+    _error = null;
+    // Limpa a lista anterior para não mostrar dados errados enquanto carrega
+    _recursos = []; 
+    notifyListeners();
+
+    try {
+      _recursos = await _service.listarRecursosPorProjeto(projetoId);
       _error = null;
     } catch (e) {
       _error = e.toString();

@@ -1,11 +1,13 @@
 import 'package:fabrica_software_app/Widgets/App_bar/App_bar.dart';
 import 'package:fabrica_software_app/Widgets/Barra_lateral/Barra_Lateral.dart';
 import 'package:fabrica_software_app/Widgets/Modal_de_criacao/Modal_de_criacao.dart';
+import 'package:fabrica_software_app/config/projeto_dto.dart';
 import 'package:fabrica_software_app/providers/modal_criacao_projeto_provider.dart';
+import 'package:fabrica_software_app/providers/projetos_provider.dart'; // Importe o provider
+import 'components/Card_Projeto.dart';
+import 'components/filtro.dart';
 
 import 'package:flutter/material.dart';
-// ignore: unused_import
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 class GerenciarProjetos extends StatefulWidget {
@@ -16,10 +18,20 @@ class GerenciarProjetos extends StatefulWidget {
 }
 
 class _GerenciarProjetosState extends State<GerenciarProjetos> {
+  
+  @override
+  void initState() {
+    super.initState();
+    // Inicia o carregamento dos dados assim que a tela é construída
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProjetosProvider>().carregarProjetos();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Um fundo levemente cinza destaca os cards brancos
+      backgroundColor: Colors.grey[50],
       appBar: CustomAppBar(
         title: 'Gestão de Projetos',
         listaActions: [
@@ -41,27 +53,33 @@ class _GerenciarProjetosState extends State<GerenciarProjetos> {
         ],
       ),
       drawer: BarraLateral(),
-      // AQUI ENTRA O BODY QUE CRIAMOS
+      // Usamos o corpo com estado agora
       body: const ProjectDashboardBody(),
     );
   }
 }
 
 void abrirModalCriacao(BuildContext context) {
+  projetoDraft.clear(); // 1. Limpa dados
+
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (_) {
       return ChangeNotifierProvider(
-        create: (_) => ModalCriacaoProjetoProvider(),
-        child: ModalDeCriacao(),
+        create: (_) {
+          final p = ModalCriacaoProjetoProvider();
+          p.iniciarCriacao(); // <--- ATIVA O MODO CRIAÇÃO (Wizard)
+          return p;
+        },
+        child: const ModalDeCriacao(),
       );
     },
   );
 }
 
 // ============================================================================
-// WIDGETS DO DASHBOARD (Visual)
+// BODY COM CONSUMER (DADOS REAIS)
 // ============================================================================
 
 class ProjectDashboardBody extends StatelessWidget {
@@ -69,366 +87,93 @@ class ProjectDashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 24),
+    // Consumer escuta o Provider. Sempre que houver notifyListeners(), ele reconstrói.
+    return Consumer<ProjetosProvider>(
+      builder: (context, provider, child) {
+        
+        // 1. Carregando
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          // 2. Seção de Filtros
-          const FilterSection(),
-
-          const SizedBox(height: 32),
-
-          // 3. Título da Lista
-          const Text(
-            "Projetos (12)",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 4. Grid de Projetos Responsivo
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Lógica de colunas baseada na largura da tela
-              int crossAxisCount = constraints.maxWidth > 1100
-                  ? 3
-                  : constraints.maxWidth > 700
-                      ? 2
-                      : 1;
-
-              // Ajuste da proporção (altura vs largura) do card
-              double childAspectRatio = constraints.maxWidth > 700 ? 1.3 : 1.5;
-
-              return GridView.builder(
-                shrinkWrap: true, // Importante para funcionar dentro do SingleChildScrollView
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio,
-                  mainAxisExtent: 240, // Altura fixa para garantir uniformidade
-                ),
-                itemCount: projectsMock.length,
-                itemBuilder: (context, index) {
-                  return ProjectCard(data: projectsMock[index]);
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// --- WIDGET: SEÇÃO DE FILTROS ---
-class FilterSection extends StatelessWidget {
-  const FilterSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Filtros de Pesquisa",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text("Limpar Filtros"),
-              )
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Wrap permite que os campos "quebrem a linha" em telas menores
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              _buildInput("Nome do Projeto", "Buscar projeto...", width: 250),
-              _buildDropdown("Tipo", "Todos os tipos", width: 180),
-              _buildInput("Cliente", "Nome do cliente...", width: 250),
-              _buildDropdown("Status", "Todos os status", width: 180),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInput(String label, String hint, {required double width}) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 45, // Altura fixa para alinhar com dropdowns
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
+        // 2. Erro
+        if (provider.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                Text('Erro ao carregar: ${provider.error}'),
+                TextButton(
+                  onPressed: () => provider.carregarProjetos(),
+                  child: const Text('Tentar novamente'),
+                )
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          );
+        }
 
-  Widget _buildDropdown(String label, String value, {required double width}) {
-    return SizedBox(
-      width: width,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Container(
-            height: 45,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: value,
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down),
-                items: [
-                  DropdownMenuItem(value: value, child: Text(value, style: const TextStyle(fontSize: 13)))
-                ],
-                onChanged: (_) {},
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+        final projetos = provider.projetos ?? [];
 
-// --- WIDGET: CARD DO PROJETO ---
-class ProjectCard extends StatelessWidget {
-  final Map<String, dynamic> data;
-
-  const ProjectCard({super.key, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor;
-    Color statusBgColor;
-
-    switch (data['status']) {
-      case 'Em processo':
-        statusColor = Colors.green.shade700;
-        statusBgColor = Colors.green.shade50;
-        break;
-      case 'Concluído':
-        statusColor = Colors.blue.shade700;
-        statusBgColor = Colors.blue.shade50;
-        break;
-      case 'Pausado':
-        statusColor = Colors.orange.shade700;
-        statusBgColor = Colors.orange.shade50;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusBgColor = Colors.grey.shade100;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color.fromARGB(255, 230, 228, 228)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
+        // 3. Sucesso (Lista)
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: data['iconColor'].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(data['icon'], color: data['iconColor'], size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data['title'],
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      data['client'],
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  data['status'],
-                  style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
+              const SizedBox(height: 24),
 
-          const Spacer(),
+              const FilterSection(), // Seus filtros visuais
 
-          // Descrição
-          Text(
-            data['description'],
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
-          ),
+              const SizedBox(height: 32),
 
-          const Spacer(),
-
-          // Footer
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Fake Avatars
-              SizedBox(
-                width: 80,
-                height: 30,
-                child: Stack(
-                  children: [
-                    _buildAvatar(0, Colors.red),
-                    _buildAvatar(15, Colors.blue),
-                    _buildAvatar(30, Colors.green),
-                  ],
-                ),
-              ),
               Text(
-                data['type'],
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                "Projetos (${projetos.length})",
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
 
-  Widget _buildAvatar(double left, Color color) {
-    return Positioned(
-      left: left,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          // Usando container colorido simples como placeholder para evitar erro de rede
-          // image: DecorationImage(image: NetworkImage("..."))
-        ),
-        child: Center(
-            child: Icon(Icons.person, size: 16, color: color.withOpacity(0.8))
-        ),
-      ),
+              const SizedBox(height: 16),
+              
+              if (projetos.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Text("Nenhum projeto encontrado."),
+                  ),
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    int crossAxisCount = constraints.maxWidth > 1100
+                        ? 3
+                        : constraints.maxWidth > 700
+                            ? 2
+                            : 1;
+
+                    double childAspectRatio = constraints.maxWidth > 700 ? 1.3 : 1.5;
+
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: childAspectRatio,
+                        mainAxisExtent: 240,
+                      ),
+                      itemCount: projetos.length,
+                      itemBuilder: (context, index) {
+                        return ProjectCard(projeto: projetos[index]);
+                      },
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
-
-// --- DADOS MOCKADOS ---
-final List<Map<String, dynamic>> projectsMock = [
-  {
-    "title": "E-commerce Platform",
-    "client": "Cliente 1",
-    "status": "Em processo",
-    "description": "Desenvolvimento de plataforma completa de e-commerce com integração de pagamentos e estoque.",
-    "type": "Web",
-    "icon": Icons.language,
-    "iconColor": Colors.blue,
-  },
-  {
-    "title": "Mobile Banking App",
-    "client": "Cliente 2",
-    "status": "Concluído",
-    "description": "Aplicativo móvel para operações bancárias com biometria e notificações push.",
-    "type": "Mobile",
-    "icon": Icons.smartphone,
-    "iconColor": Colors.purple,
-  },
-  {
-    "title": "CRM API Integration",
-    "client": "Cliente 3",
-    "status": "Pausado",
-    "description": "Integração de API REST para sincronização de dados entre sistemas CRM e ERP legado.",
-    "type": "API",
-    "icon": Icons.code,
-    "iconColor": Colors.green,
-  },
-  {
-    "title": "Dashboard Financeiro",
-    "client": "Tegra",
-    "status": "Em processo",
-    "description": "Dashboard analítico para visualização de gastos e receitas em tempo real.",
-    "type": "Web",
-    "icon": Icons.pie_chart,
-    "iconColor": Colors.orange,
-  },
-  
-];

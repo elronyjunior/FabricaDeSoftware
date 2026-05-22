@@ -1,5 +1,5 @@
-import 'package:fabrica_software_app/Widgets/App_bar/App_bar.dart';
 import 'package:fabrica_software_app/Widgets/Barra_lateral/Barra_Lateral.dart';
+import 'package:fabrica_software_app/models/projeto.dart';
 import 'package:fabrica_software_app/models/recurso.dart';
 import 'package:fabrica_software_app/providers/recursos_provider.dart';
 import 'package:fabrica_software_app/screens/Recursos/components/RecursosRow.dart';
@@ -8,7 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class Recursos extends StatefulWidget {
-  const Recursos({super.key});
+  // Parâmetro opcional: Se vier preenchido, filtra por projeto.
+  final Projeto? projetoVinculado;
+
+  const Recursos({super.key, this.projetoVinculado});
 
   @override
   State<Recursos> createState() => _RecursosState();
@@ -19,20 +22,51 @@ class _RecursosState extends State<Recursos> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RecursosProvider>(context, listen: false).carregarRecursos();
+      if (widget.projetoVinculado != null) {
+        // Se tem projeto vinculado, carrega filtrado
+        // OBS: Certifique-se que o ID do projeto não é nulo
+        context.read<RecursosProvider>().carregarRecursosPorProjeto(widget.projetoVinculado!.id!);
+      } else {
+        // Se não tem, carrega todos (comportamento padrão)
+        context.read<RecursosProvider>().carregarRecursos();
+      }
     });
   }
   
   @override
   Widget build(BuildContext context) {
     final recursosProvider = context.watch<RecursosProvider>();
+    // Flag para saber se estamos no modo filtrado
+    final bool isFiltrado = widget.projetoVinculado != null;
     
     return Scaffold(
-      drawer: BarraLateral(),
+      // Se estiver filtrado, NÃO mostra o menu lateral (Drawer) para não confundir a navegação
+      drawer: isFiltrado ? null : BarraLateral(),
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: CustomAppBar(
-        title: 'Gestão de Recursos',
-        listaActions: [
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        // Configura o botão da esquerda (Leading)
+        leading: IconButton(
+          icon: Icon(
+            isFiltrado ? Icons.arrow_back : Icons.menu, // Seta se filtrado, Menu se geral
+            color: const Color(0xFF1E293B)
+          ),
+          onPressed: () {
+            if (isFiltrado) {
+              Navigator.pop(context); // Volta para a tela do projeto
+            } else {
+              Scaffold.of(context).openDrawer(); // Abre o menu lateral
+            }
+          },
+        ),
+        title: Text(
+          isFiltrado 
+            ? 'Gestão de Recursos' // Título específico
+            : 'Gestão de Recursos',
+          style: const TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        actions: [
           Padding(
             padding: const EdgeInsets.only(right: 20.0),
             child: ElevatedButton.icon(
@@ -40,12 +74,12 @@ class _RecursosState extends State<Recursos> {
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Novo Recurso'),
               style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink, 
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                backgroundColor: Colors.pink, 
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
           ),
         ],
@@ -60,7 +94,7 @@ class _RecursosState extends State<Recursos> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 34),
-                  // TODO: Filtros aqui
+                  // TODO: Filtros aqui (se necessário)
                   const SizedBox(height: 24),
                   
                   Card(
@@ -97,8 +131,8 @@ class _RecursosState extends State<Recursos> {
                           width: double.infinity,
                           color: Colors.grey[50],
                           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Expanded(
                                 flex: 3,
                                 child: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold)),

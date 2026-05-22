@@ -1,16 +1,17 @@
 // ignore: unused_import
 import 'package:fabrica_software_app/models/recurso.dart';
-<<<<<<< HEAD
-=======
+import 'package:fabrica_software_app/models/teste.dart';
 import 'package:fabrica_software_app/models/usuario.dart';
->>>>>>> develop
 import 'package:fabrica_software_app/providers/recursos_provider.dart';
 import 'package:fabrica_software_app/providers/tecnologias_provider.dart';
 import 'package:fabrica_software_app/screens/Cadastro/Cadastro_screen.dart';
 import 'package:fabrica_software_app/screens/Account/Account.dart';
 import 'package:fabrica_software_app/screens/Clientes/Clientes.dart';
+import 'package:fabrica_software_app/screens/Equipe/Gerenciar_Equipes_Screen.dart';
 import 'package:fabrica_software_app/screens/Recursos/Recursos.dart';
+import 'package:fabrica_software_app/screens/Relatorio/Relatorio_Screen.dart';
 import 'package:fabrica_software_app/screens/Tecnologias/Tecnologias.dart';
+import 'package:fabrica_software_app/screens/Tests/Teste_screen.dart';
 import 'package:fabrica_software_app/screens/Usuarios/usuarios.dart';
 // ignore: unused_import
 import 'package:fabrica_software_app/services/requisito_service.dart';
@@ -28,12 +29,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 void main() async { 
   
+  // --- MUDANÇA 2: Garanta que o Flutter está pronto
   WidgetsFlutterBinding.ensureInitialized(); 
 
+  // --- MUDANÇA 3: Inicialize o Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Seu código original
   runApp(
     MultiProvider(
       providers:[
@@ -43,11 +47,6 @@ void main() async {
         ChangeNotifierProvider(create: (_) { return RecursosProvider();}),
         ChangeNotifierProvider(create: (_) { return ClientesProvider();}),
         ChangeNotifierProvider(create: (_) { return TecnologiasProvider();}),
-        // ChangeNotifierProvider(create: (_) { return RequisitosProvider();}),
-        // ChangeNotifierProvider(create: (_) { return ContribuidoresProvider();}),
-        // ChangeNotifierProvider(create: (_) { return TreinamentosProvider();}),
-        // ChangeNotifierProvider(create: (_) { return DocumentosProvider();}),
-        // ChangeNotifierProvider(create: (_) { return TestesProvider();}),
       ],  
       child: MyApp(),
     )
@@ -71,7 +70,8 @@ class MyApp extends StatelessWidget {
           '/Recursos':(context){return const Recursos();},
           '/Tecnologias':(context){return const Tecnologias();},
           '/Usuarios':(context){return const Usuarios();},
-
+          '/Equipes':(context){return const GerenciarEquipesScreen();},
+          '/Relatorios':(context){return const RelatoriosScreen();}
         },
         title: 'Fábrica de Software',
         theme: ThemeData(

@@ -4,12 +4,14 @@ import 'package:fabrica_software_app/providers/modal_criacao_projeto_provider.da
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:fabrica_software_app/config/projeto_dto.dart';
+import 'package:fabrica_software_app/services/api_service.dart';
 
-// --- MODELO ATUALIZADO (Com Título e Descrição) ---
+// --- MODELO LOCAL DE DADOS ---
 class RequisitoItem {
   String id;
-  String titulo;      // NOVO CAMPO: Nome curto do requisito
-  String descricao;   // Conteúdo detalhado
+  String titulo;
+  String descricao;
   String tipo;        // 'Funcional' ou 'Não Funcional'
   String prioridade;  // 'Alta', 'Média', 'Baixa'
   bool isAiGenerated;
@@ -24,7 +26,7 @@ class RequisitoItem {
     required this.prioridade,
     this.isAiGenerated = false,
     this.isEdited = false,
-    this.isApproved = false,
+    this.isApproved = true, // Manuais nascem aprovados, IA requer aprovação
   });
 }
 
@@ -55,15 +57,26 @@ class LevantamentosRequisitosStep extends ModalStep {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Botão Cancelar
           TextButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // Regra: Sair perde tudo
+              projetoDraft.clear();
+              Navigator.pop(context);
+            },
             icon: const Icon(Icons.close, size: 16, color: Colors.black87),
             label: const Text('Cancelar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.normal)),
           ),
+          
           Row(
             children: [
+              // Botão Voltar
               OutlinedButton(
                 onPressed: () {
+                  // Regra: Regressar perde o progresso desta etapa
+                  if (_contentKey.currentState != null) {
+                    _contentKey.currentState!.limparDadosDestaEtapa();
+                  }
                   context.read<ModalCriacaoProjetoProvider>().previousIndex();
                 },
                 style: OutlinedButton.styleFrom(
@@ -72,10 +85,19 @@ class LevantamentosRequisitosStep extends ModalStep {
                 ),
                 child: const Text('Voltar', style: TextStyle(color: Colors.black87)),
               ),
+              
               const SizedBox(width: 12),
+              
+              // Botão Próxima Etapa
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  if (_contentKey.currentState != null) {
+                    // Validação: Só avança se tiver requisitos
+                    if (_contentKey.currentState!.validar()) {
+                       _contentKey.currentState!.salvarNoDTO();
+                       context.read<ModalCriacaoProjetoProvider>().nextIndex();
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2962FF),
@@ -83,7 +105,13 @@ class LevantamentosRequisitosStep extends ModalStep {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                child: const Text('Criar Projeto'),
+                child: Row(
+                  children: const [
+                    Text('Próxima etapa'),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_ios, size: 12),
+                  ],
+                ),
               ),
             ],
           ),
@@ -103,56 +131,237 @@ class _LevantamentoRequisitosContent extends StatefulWidget {
 class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosContent> {
   // Controladores
   final TextEditingController _escopoController = TextEditingController();
-  
-  // Novos controladores para o cadastro manual
   final TextEditingController _novoTituloController = TextEditingController();
   final TextEditingController _novaDescricaoController = TextEditingController();
   
   String _tipoSelecionado = 'Funcional';
   String _prioridadeSelecionada = 'Média';
+  bool _isLoadingAI = false;
 
+  // Lista de requisitos local
   final List<RequisitoItem> requisitos = [];
 
-  void _adicionarRequisito() {
-    // Validação simples
-    if (_novoTituloController.text.trim().isEmpty || _novaDescricaoController.text.trim().isEmpty) return;
+  // --- MÉTODOS DE CONTROLE ---
 
+  void limparDadosDestaEtapa() {
     setState(() {
-      requisitos.add(RequisitoItem(
-        id: DateTime.now().toString(),
-        titulo: _novoTituloController.text, // Usa o título
-        descricao: _novaDescricaoController.text, // Usa a descrição
-        tipo: _tipoSelecionado,
-        prioridade: _prioridadeSelecionada,
-        isAiGenerated: false,
-      ));
-      // Limpa os campos
+      requisitos.clear();
+      projetoDraft.requisitos = [];
+      _escopoController.clear();
       _novoTituloController.clear();
       _novaDescricaoController.clear();
     });
   }
 
-  void _gerarRequisitosIA() {
+  void salvarNoDTO() {
+    projetoDraft.escopo = _escopoController.text;
+    
+    projetoDraft.requisitos = requisitos.map((r) => {
+      'titulo': r.titulo,
+      'descricao': r.descricao,
+      'tipo': r.tipo,
+      'prioridade': r.prioridade,
+      'is_ai_generated': r.isAiGenerated,
+      'is_approved': r.isApproved,
+      'is_edited': r.isEdited
+    }).toList();
+  }
+
+  bool validar() {
+    if (requisitos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("É necessário adicionar pelo menos um requisito para continuar."),
+          backgroundColor: Colors.red,
+        )
+      );
+      return false;
+    }
+    return true;
+  }
+
+  void _adicionarRequisitoManual() {
+    if (_novoTituloController.text.trim().isEmpty || _novaDescricaoController.text.trim().isEmpty) return;
+
     setState(() {
-      requisitos.addAll([
-        RequisitoItem(
-          id: DateTime.now().toString() + "1",
-          titulo: "Autenticação Social", // Título gerado pela IA
-          descricao: "O sistema deve permitir que o usuário faça login utilizando suas contas do Google e Facebook para facilitar o acesso.",
-          tipo: "Funcional",
-          prioridade: "Alta",
-          isAiGenerated: true,
-        ),
-        RequisitoItem(
-          id: DateTime.now().toString() + "2",
-          titulo: "Performance de API", // Título gerado pela IA
-          descricao: "O tempo de resposta dos endpoints da API principal não deve exceder 200ms em condições normais de carga.",
-          tipo: "Não Funcional",
-          prioridade: "Média",
-          isAiGenerated: true,
-        ),
-      ]);
+      requisitos.add(RequisitoItem(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        titulo: _novoTituloController.text,
+        descricao: _novaDescricaoController.text,
+        tipo: _tipoSelecionado,
+        prioridade: _prioridadeSelecionada,
+        isAiGenerated: false,
+        isApproved: true, // Manuais já nascem aprovados
+      ));
+      
+      _novoTituloController.clear();
+      _novaDescricaoController.clear();
     });
+  }
+
+  // --- INTEGRAÇÃO COM IA NO BACKEND ---
+  Future<void> _gerarRequisitosIA() async {
+    if (_escopoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Por favor, descreva o escopo do projeto antes de chamar a IA."))
+      );
+      return;
+    }
+
+    setState(() => _isLoadingAI = true);
+
+    try {
+      String nomeProjeto = projetoDraft.nome ?? "Novo Projeto";
+      
+      // Chama o ApiService que conecta no seu Node.js
+      List<dynamic> resultados = await ApiService.gerarRequisitosBackend(
+        _escopoController.text, 
+        nomeProjeto
+      );
+
+      setState(() {
+        for (var item in resultados) {
+          requisitos.add(RequisitoItem(
+            id: DateTime.now().microsecondsSinceEpoch.toString() + item['titulo'].hashCode.toString(),
+            titulo: item['titulo'] ?? 'Requisito Sugerido',
+            descricao: item['descricao'] ?? '',
+            tipo: item['tipo'] ?? 'Funcional',
+            prioridade: item['prioridade'] ?? 'Média',
+            isAiGenerated: true,
+            isApproved: false, // Requer aprovação
+          ));
+        }
+      });
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao conectar com a IA: $e"), backgroundColor: Colors.red)
+      );
+    } finally {
+      setState(() => _isLoadingAI = false);
+    }
+  }
+
+  // --- LÓGICA DE EDIÇÃO ---
+  void _editarRequisito(int index) {
+    RequisitoItem itemAtual = requisitos[index];
+    
+    TextEditingController editTituloCtrl = TextEditingController(text: itemAtual.titulo);
+    TextEditingController editDescCtrl = TextEditingController(text: itemAtual.descricao);
+    String editTipo = itemAtual.tipo;
+    String editPrioridade = itemAtual.prioridade;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.edit, size: 20, color: Colors.blueGrey),
+                  SizedBox(width: 8),
+                  Text("Editar Requisito", style: TextStyle(fontSize: 16)),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ComponentsConfiguracaoInicalProjeto.buildLabel("Título"),
+                    Container(
+                      decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
+                      child: TextField(
+                        controller: editTituloCtrl,
+                        decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Título"),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ComponentsConfiguracaoInicalProjeto.buildLabel("Descrição"),
+                    Container(
+                      decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
+                      child: TextField(
+                        controller: editDescCtrl,
+                        maxLines: 3,
+                        decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Descrição"),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ComponentsConfiguracaoInicalProjeto.buildLabel("Tipo"),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: editTipo,
+                                    isExpanded: true,
+                                    items: ['Funcional', 'Não Funcional'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+                                    onChanged: (v) => setDialogState(() => editTipo = v!),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ComponentsConfiguracaoInicalProjeto.buildLabel("Prioridade"),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: editPrioridade,
+                                    isExpanded: true,
+                                    items: ['Alta', 'Média', 'Baixa'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+                                    onChanged: (v) => setDialogState(() => editPrioridade = v!),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      requisitos[index].titulo = editTituloCtrl.text;
+                      requisitos[index].descricao = editDescCtrl.text;
+                      requisitos[index].tipo = editTipo;
+                      requisitos[index].prioridade = editPrioridade;
+                      requisitos[index].isEdited = true; 
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2962FF)),
+                  child: const Text("Salvar Alterações", style: TextStyle(color: Colors.white)),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _removerRequisito(int index) {
@@ -176,7 +385,7 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         
-        // --- SEÇÃO 1: ESCOPO E IA ---
+        // --- SEÇÃO ESCOPO ---
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
@@ -192,47 +401,64 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
           ),
         ),
         const SizedBox(height: 16),
-        ComponentsConfiguracaoInicalProjeto.buildLabel("Descreva o escopo", isRequired: true),
+        
+        ComponentsConfiguracaoInicalProjeto.buildLabel("Descreva o escopo para a IA", isRequired: true),
         Container(
           decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
           child: TextField(
             controller: _escopoController,
             maxLines: 3,
             decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration(
-              "Descreva detalhadamente o escopo... A IA usará isso para gerar requisitos.",
+              "Ex: Desenvolver um CRM para gestão de vendas com integração ao WhatsApp...",
             ),
           ),
         ),
         const SizedBox(height: 12),
+        
+        // Botão Gerar com Loading
         Container(
           width: double.infinity,
-          height: 40,
+          height: 45,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF9C27B0)]),
+            gradient: _isLoadingAI 
+                ? const LinearGradient(colors: [Colors.grey, Colors.blueGrey])
+                : const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF9C27B0)]),
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
-              BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2)),
+              if (!_isLoadingAI)
+                BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2)),
             ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: _gerarRequisitosIA,
+              onTap: _isLoadingAI ? null : _gerarRequisitosIA,
               borderRadius: BorderRadius.circular(8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(FontAwesomeIcons.wandMagicSparkles, color: Colors.white, size: 14),
-                  SizedBox(width: 8),
-                  Text("Gerar Requisitos com IA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
+              child: Center(
+                child: _isLoadingAI 
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                        SizedBox(width: 10),
+                        Text("Gerando requisitos...", style: TextStyle(color: Colors.white)),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(FontAwesomeIcons.wandMagicSparkles, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        Text("Gerar Requisitos com IA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 24),
 
-        // --- SEÇÃO 2: LISTA E CADASTRO MANUAL ---
+        // --- CONTADORES ---
         Row(
           children: [
             const Icon(Icons.assignment_outlined, color: Colors.blue, size: 20),
@@ -246,7 +472,7 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
         ),
         const SizedBox(height: 16),
 
-        // BOX DE ADICIONAR MANUALMENTE (Agora com Título e Descrição)
+        // --- BOX CADASTRO MANUAL ---
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -257,25 +483,23 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Adicionar Requisito Manual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text("Adicionar Requisito Manualmente", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
               const SizedBox(height: 12),
               
-              // Input Título
               Container(
                 decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
                 child: TextField(
                   controller: _novoTituloController,
-                  decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Título (ex: Exportação PDF)"),
+                  decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Título (ex: Login Social)"),
                 ),
               ),
               const SizedBox(height: 8),
               
-              // Input Descrição
               Container(
                 decoration: ComponentsConfiguracaoInicalProjeto.inputBoxDecoration,
                 child: TextField(
                   controller: _novaDescricaoController,
-                  decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Descrição detalhada do requisito..."),
+                  decoration: ComponentsConfiguracaoInicalProjeto.inputDecoration("Descrição detalhada..."),
                 ),
               ),
               const SizedBox(height: 12),
@@ -297,9 +521,9 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton.icon(
-                    onPressed: _adicionarRequisito,
+                    onPressed: _adicionarRequisitoManual,
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text("Adicionar"),
+                    label: const Text("Add"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),
                       foregroundColor: Colors.white,
@@ -315,17 +539,37 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
         ),
         const SizedBox(height: 20),
 
-        // LISTA DE CARDS
-        ...requisitos.asMap().entries.map((entry) {
-          int idx = entry.key;
-          RequisitoItem req = entry.value;
-          return _buildRequisitoCard(req, idx);
-        }),
+        // --- LISTA DE CARDS ---
+        if (requisitos.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Icon(Icons.list_alt, size: 40, color: Colors.grey[300]),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Nenhum requisito listado.\nUse a IA ou adicione manualmente.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...requisitos.asMap().entries.map((entry) {
+            int idx = entry.key;
+            RequisitoItem req = entry.value;
+            return _buildRequisitoCard(req, idx);
+          }),
         
         const SizedBox(height: 40),
       ],
     );
   }
+
+  // --- HELPERS VISUAIS (RESTAURADOS) ---
 
   Widget _buildDropdownButton(List<String> items, String value, Function(String?) onChanged) {
     return Container(
@@ -335,8 +579,9 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
           items: items.map((String item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item, style: const TextStyle(fontSize: 13)));
+            return DropdownMenuItem<String>(value: item, child: Text(item));
           }).toList(),
           onChanged: onChanged,
         ),
@@ -355,7 +600,6 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
     );
   }
 
-  // --- CARD DO REQUISITO ATUALIZADO ---
   Widget _buildRequisitoCard(RequisitoItem req, int index) {
     Color typeColor = req.tipo == 'Funcional' ? Colors.blue : Colors.purple;
     Color priorityColor;
@@ -377,37 +621,37 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LINHA 1: TAGS
             Row(
               children: [
                 _buildSmallTag(req.tipo, typeColor),
                 const SizedBox(width: 8),
                 _buildSmallTag(req.prioridade, priorityColor),
                 const Spacer(),
-                if (req.isAiGenerated && !req.isEdited)
-                  _buildSourceTag(FontAwesomeIcons.wandMagicSparkles, "IA", Colors.purple),
+                
                 if (req.isEdited)
-                   _buildSourceTag(Icons.edit, "Editado", Colors.orange),
-                if (!req.isAiGenerated && !req.isEdited)
-                   _buildSourceTag(Icons.person, "Manual", Colors.grey),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: _buildSmallTag("Editado", Colors.orange),
+                  ),
+
+                if (req.isAiGenerated)
+                  _buildSourceTag(FontAwesomeIcons.wandMagicSparkles, "IA", Colors.purple)
+                else
+                  _buildSourceTag(Icons.person, "Manual", Colors.grey),
               ],
             ),
             const SizedBox(height: 12),
             
-            // LINHA 2: TÍTULO (Destaque)
             Text(
               req.titulo,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15, 
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
-                decoration: req.isApproved ? TextDecoration.lineThrough : null,
-                decorationColor: Colors.green
               ),
             ),
             const SizedBox(height: 4),
 
-            // LINHA 3: DESCRIÇÃO (Conteúdo)
             Text(
               req.descricao,
               style: TextStyle(
@@ -418,14 +662,14 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
             ),
             const SizedBox(height: 16),
             
-            // LINHA 4: AÇÕES
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 InkWell(
                   onTap: () => _toggleAprovacao(index),
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: req.isApproved ? Colors.green : Colors.grey[100],
@@ -456,20 +700,19 @@ class _LevantamentoRequisitosContentState extends State<_LevantamentoRequisitosC
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                      onPressed: () {
-                        setState(() {
-                          // Exemplo de edição: Adiciona (Edit) ao título
-                          req.titulo += " (Edit)";
-                          req.isEdited = true;
-                        });
-                      },
+                      icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueGrey),
+                      onPressed: () => _editarRequisito(index),
                       tooltip: "Editar",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
+                    const SizedBox(width: 12),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
                       onPressed: () => _removerRequisito(index),
                       tooltip: "Remover",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 )

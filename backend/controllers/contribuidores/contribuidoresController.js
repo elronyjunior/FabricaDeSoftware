@@ -1,10 +1,10 @@
 ﻿const pool = require("../../db");
 
-// Listar todos os contribuidores
+// Listar todos os contribuidores (APENAS ATIVOS)
 exports.index = async (req, res) => {
   try {
-    // Selecionando todas as colunas
-    const result = await pool.query("SELECT * FROM contribuidores ORDER BY id ASC");
+    // FILTRO: Traz apenas quem está ativo
+    const result = await pool.query("SELECT * FROM contribuidores WHERE ativo = true ORDER BY id ASC");
     res.json(result.rows);
   } catch (error) {
     console.error('Erro ao listar contribuidores:', error);
@@ -15,15 +15,12 @@ exports.index = async (req, res) => {
 // Salvar novo contribuidor
 exports.store = async (req, res) => {
   try {
-    // Pegando apenas os campos que existem na tabela nova
     const { nome, email, telefone, cargo, empresa, ativo } = req.body;
 
-    // Validação básica
     if (!nome || !email) {
       return res.status(400).json({ message: 'Nome e Email são obrigatórios.' });
     }
 
-    // Se 'ativo' não for enviado, assume true (padrão do banco)
     const ativoValor = (ativo !== undefined) ? ativo : true;
 
     const result = await pool.query(
@@ -36,7 +33,6 @@ exports.store = async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao criar contribuidor:', error);
-    // Erro de chave única (Email duplicado)
     if (error.code === '23505') {
       return res.status(400).json({ message: 'Este email já está cadastrado.' });
     }
@@ -48,7 +44,8 @@ exports.store = async (req, res) => {
 exports.show = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM contribuidores WHERE id = $1", [id]);
+    // Garante que só busca se estiver ativo
+    const result = await pool.query("SELECT * FROM contribuidores WHERE id = $1 AND ativo = true", [id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Contribuidor não encontrado" });
@@ -88,10 +85,12 @@ exports.update = async (req, res) => {
   }
 };
 
-// Deletar contribuidor
+// Deletar contribuidor (SOFT DELETE - Apenas desativa)
 exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // MUDANÇA: Faz o UPDATE para false em vez de DELETE
     const result = await pool.query(
       "UPDATE contribuidores SET ativo = false WHERE id = $1 RETURNING *", 
       [id]
@@ -101,18 +100,14 @@ exports.delete = async (req, res) => {
       return res.status(404).json({ message: "Contribuidor não encontrado" });
     }
 
-    res.json({ message: "Contribuidor deletado com sucesso" });
+    res.json({ message: "Contribuidor desativado com sucesso" });
   } catch (error) {
-    // Erro comum: Violação de chave estrangeira (se ele tiver projetos vinculados)
-    if (error.code === '23503') {
-       return res.status(400).json({ message: "Não é possível excluir este contribuidor pois ele está vinculado a projetos." });
-    }
+    // Mesmo sendo soft delete, se o banco tiver alguma trava muito específica ele avisa
     res.status(500).json({ error: error.message });
   }
 };
 
 // Buscar projetos do contribuidor
-// (Mantido igual, assumindo que as tabelas 'projetos' e 'contribuidores_projeto' existem)
 exports.projetos = async (req, res) => {
   try {
     const { id } = req.params;

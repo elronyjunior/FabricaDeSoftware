@@ -1,4 +1,5 @@
 ﻿const pool = require("../../db");
+const googleDocsService = require("../../service/googleDocsService");
 
 exports.index = async (req, res) => {
   try {
@@ -53,10 +54,32 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("DELETE FROM documentos WHERE id = $1 RETURNING *", [id]);
-    if (result.rows.length === 0) return res.status(404).json({ message: "Documento não encontrado" });
-    res.json({ message: "Documento deletado" });
+
+    // 1. Buscar o documento para pegar o Link
+    const result = await pool.query("SELECT * FROM documentos WHERE id = $1", [id]);
+    const doc = result.rows[0];
+
+    if (!doc) {
+      return res.status(404).json({ message: "Documento não encontrado" });
+    }
+
+    // 2. Tentar extrair o ID do Google Drive a partir do Link
+    // Links normais: https://docs.google.com/document/d/ID_DO_ARQUIVO/edit
+    const match = doc.arquivo_url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    
+    if (match && match[1]) {
+      const googleFileId = match[1];
+      console.log(`Tentando apagar arquivo do Drive ID: ${googleFileId}`);
+      await googleDocsService.deletarArquivo(googleFileId);
+    }
+
+    // 3. Apagar do Banco de Dados
+    await pool.query("DELETE FROM documentos WHERE id = $1", [id]);
+
+    res.json({ message: "Documento excluído do Banco e do Drive!" });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };

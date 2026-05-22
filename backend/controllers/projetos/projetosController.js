@@ -18,18 +18,19 @@ exports.index = async (req, res) => {
 // Criar Projeto
 exports.store = async (req, res) => {
   try {
+    // ADICIONADO: campo 'tipo'
     const { 
-      nome_projeto, descricao, modelo_projeto, metodologia, escopo, 
+      nome_projeto, descricao, tipo, modelo_projeto, metodologia, escopo, 
       data_inicio, data_final_previsto, complexidade, orcamento_estimado, 
       cliente_id, responsavel_id, criado_por_id 
     } = req.body;
 
     const result = await pool.query(
       `INSERT INTO projetos 
-      (nome_projeto, descricao, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, complexidade, orcamento_estimado, cliente_id, responsavel_id, criado_por_id) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+      (nome_projeto, descricao, tipo, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, complexidade, orcamento_estimado, cliente_id, responsavel_id, criado_por_id) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
       RETURNING *`,
-      [nome_projeto, descricao, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, complexidade, orcamento_estimado, cliente_id, responsavel_id, criado_por_id]
+      [nome_projeto, descricao, tipo, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, complexidade, orcamento_estimado, cliente_id, responsavel_id, criado_por_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -37,7 +38,7 @@ exports.store = async (req, res) => {
   }
 };
 
-// Detalhes Completos (Pode ser expandido para trazer requisitos e tarefas no futuro)
+// Detalhes Completos
 exports.details = async (req, res) => {
     try {
       const { id } = req.params;
@@ -76,19 +77,20 @@ exports.show = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
+    // ADICIONADO: campo 'tipo'
     const { 
-      nome_projeto, descricao, modelo_projeto, metodologia, escopo, 
+      nome_projeto, descricao, tipo, modelo_projeto, metodologia, escopo, 
       data_inicio, data_final_previsto, data_final, complexidade, orcamento_estimado, 
       cliente_id, responsavel_id 
     } = req.body;
 
     const result = await pool.query(
       `UPDATE projetos SET 
-      nome_projeto=$1, descricao=$2, modelo_projeto=$3, metodologia=$4, escopo=$5, 
-      data_inicio=$6, data_final_previsto=$7, data_final=$8, complexidade=$9, orcamento_estimado=$10, 
-      cliente_id=$11, responsavel_id=$12 
-      WHERE id=$13 RETURNING *`,
-      [nome_projeto, descricao, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, data_final, complexidade, orcamento_estimado, cliente_id, responsavel_id, id]
+      nome_projeto=$1, descricao=$2, tipo=$3, modelo_projeto=$4, metodologia=$5, escopo=$6, 
+      data_inicio=$7, data_final_previsto=$8, data_final=$9, complexidade=$10, orcamento_estimado=$11, 
+      cliente_id=$12, responsavel_id=$13 
+      WHERE id=$14 RETURNING *`,
+      [nome_projeto, descricao, tipo, modelo_projeto, metodologia, escopo, data_inicio, data_final_previsto, data_final, complexidade, orcamento_estimado, cliente_id, responsavel_id, id]
     );
 
     if (result.rows.length === 0) {

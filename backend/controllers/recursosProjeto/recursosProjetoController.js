@@ -88,12 +88,14 @@ exports.delete = async (req, res) => {
   }
 };
 
-// Listar por projeto
+// Listar por projeto (MODIFICADO para retornar o objeto Recurso completo)
 exports.byProjeto = async (req, res) => {
   try {
     const { projetoId } = req.params;
+    // MUDANÇA AQUI: Selecionamos r.* para pegar os dados do Recurso (nome, tipo, descricao, etc)
+    // Se precisar de dados do vinculo (custo, data), adicione rp.custo_hora, etc.
     const result = await pool.query(
-      "SELECT rp.*, r.nome as recurso_nome " +
+      "SELECT r.* " + 
       "FROM recursos_projeto rp " +
       "INNER JOIN recursos r ON rp.recurso_id = r.id " +
       "WHERE rp.projeto_id = $1",

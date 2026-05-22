@@ -78,7 +78,7 @@ class BarraLateral extends StatelessWidget {
                   context,
                   icon: FontAwesomeIcons.peopleGroup,
                   text: 'Equipe',
-                  rotaDestino: '/Equipe', 
+                  rotaDestino: '/Equipes', 
                   rotaAtual: rotaAtual,
                 ),
                 _buildMenuItem(
@@ -100,13 +100,6 @@ class BarraLateral extends StatelessWidget {
                   icon: FontAwesomeIcons.users,
                   text: 'Gestão de Clientes',
                   rotaDestino: '/Clientes',
-                  rotaAtual: rotaAtual,
-                ),
-                _buildMenuItem(
-                  context,
-                  icon: FontAwesomeIcons.cubes,
-                  text: 'Gestão de Recursos',
-                  rotaDestino: '/Recursos',
                   rotaAtual: rotaAtual,
                 ),
                 _buildMenuItem(

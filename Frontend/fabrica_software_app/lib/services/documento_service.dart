@@ -1,40 +1,48 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/documento.dart';
-import 'base_api_service.dart';
+import 'package:fabrica_software_app/config/api_config.dart'; // Ajuste o import do seu ApiConfig
+import 'package:fabrica_software_app/services/auth_service.dart'; // Ajuste para pegar seu token
 
-class DocumentoService extends BaseApiService {
-  DocumentoService() : super('/documentos');
+class DocumentoService {
+  
+  // Listar documentos do projeto
+  Future<List<dynamic>> getDocumentosDoProjeto(int projetoId) async {
+    final token = await AuthService.instance.token; // Pega token salvo
+    final url = Uri.parse('${ApiConfig.baseUrl}/documentos/projeto/$projetoId');
+    
+    final response = await http.get(url, headers: ApiConfig.getAuthHeaders(token));
 
-  Future<List<Documento>> getDocumentos() async {
-    return getAll<Documento>(Documento.fromJson);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erro ao carregar documentos');
+    }
   }
 
-  Future<Documento> getDocumento(int id) async {
-    return getById<Documento>(id, Documento.fromJson);
-  }
+  // Chamar a IA para gerar e salvar
+  Future<void> gerarDocumentoIA({
+    required int projetoId,
+    required String tipo,
+    required String titulo,
+    required String descricao,
+  }) async {
+    final token = await AuthService.instance.token;
+    final url = Uri.parse('${ApiConfig.baseUrl}/ai/gerar-documento');
 
-  Future<List<Documento>> getDocumentosByProjeto(int projetoId) async {
-    final Uri uri = buildUri('/projeto/$projetoId');
-    final response = await http.get(
-      uri,
-      headers: await getHeaders(),
+    final response = await http.post(
+      url,
+      headers: ApiConfig.getAuthHeaders(token),
+      body: jsonEncode({
+        "projetoId": projetoId,
+        "tipoDocumento": tipo,
+        "tituloDocumento": titulo,
+        "descricaoExtra": descricao,
+      }),
     );
 
-    return handleResponse(response, (json) {
-      if (json is! List) throw ApiException('Resposta inválida do servidor');
-      return json.map((item) => Documento.fromJson(item as Map<String, dynamic>)).toList();
-    });
-  }
-
-  Future<Documento> createDocumento(Documento documento) async {
-    return create<Documento>(documento.toJson(), Documento.fromJson);
-  }
-
-  Future<Documento> updateDocumento(Documento documento) async {
-    return update<Documento>(documento.id ?? 0, documento.toJson(), Documento.fromJson);
-  }
-
-  Future<void> deleteDocumento(int id) async {
-    return delete(id);
+    if (response.statusCode != 200) {
+      final erro = jsonDecode(response.body);
+      throw Exception(erro['error'] ?? 'Erro ao gerar documento');
+    }
   }
 }

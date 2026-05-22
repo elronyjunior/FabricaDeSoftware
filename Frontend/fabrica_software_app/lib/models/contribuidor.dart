@@ -2,7 +2,6 @@ class Contribuidor {
   final int? id;
   final String nome;
   final String email;
-  final String? telefone;
   final String? cargo;
   final String? empresa;
   final bool ativo;
@@ -11,18 +10,24 @@ class Contribuidor {
     this.id,
     required this.nome,
     required this.email,
-    this.telefone,
     this.cargo,
     this.empresa,
     this.ativo = true,
   });
 
   factory Contribuidor.fromJson(Map<String, dynamic> json) {
+    // Helper para evitar erro "String is not subtype of int"
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
     return Contribuidor(
-      id: json['id'],
-      nome: json['nome'],
-      email: json['email'],
-      telefone: json['telefone'],
+      id: parseInt(json['id']),
+      nome: json['nome'] ?? '',
+      email: json['email'] ?? '',
       cargo: json['cargo'],
       empresa: json['empresa'],
       ativo: json['ativo'] ?? true,
@@ -34,30 +39,9 @@ class Contribuidor {
       'id': id,
       'nome': nome,
       'email': email,
-      'telefone': telefone,
       'cargo': cargo,
       'empresa': empresa,
       'ativo': ativo,
     };
-  }
-
-  Contribuidor copyWith({
-    int? id,
-    String? nome,
-    String? email,
-    String? telefone,
-    String? cargo,
-    String? empresa,
-    bool? ativo,
-  }) {
-    return Contribuidor(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      email: email ?? this.email,
-      telefone: telefone ?? this.telefone,
-      cargo: cargo ?? this.cargo,
-      empresa: empresa ?? this.empresa,
-      ativo: ativo ?? this.ativo,
-    );
   }
 }

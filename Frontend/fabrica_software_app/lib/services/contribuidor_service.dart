@@ -13,10 +13,12 @@ class ContribuidorService extends BaseApiService {
   }
 
   Future<Contribuidor> createContribuidor(Contribuidor contribuidor) async {
+    // CORREÇÃO: toJson() com J maiúsculo
     return create<Contribuidor>(contribuidor.toJson(), Contribuidor.fromJson);
   }
 
   Future<Contribuidor> updateContribuidor(Contribuidor contribuidor) async {
+    // CORREÇÃO: toJson() com J maiúsculo
     return update<Contribuidor>(contribuidor.id ?? 0, contribuidor.toJson(), Contribuidor.fromJson);
   }
 
