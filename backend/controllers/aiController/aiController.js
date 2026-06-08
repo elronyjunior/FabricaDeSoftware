@@ -7,16 +7,47 @@ const {
   formatRequisitoForApi,
 } = require('../../service/ai/aiPrompts');
 
+function montarTituloRequisito(requisito) {
+  const codigo = requisito.codigo_requisito || '';
+  const descricao = (requisito.descricao || '').trim();
+  const trechoAntesDoisPontos = descricao.split(':')[0]?.trim();
+  const tituloBase =
+    trechoAntesDoisPontos && trechoAntesDoisPontos.length <= 90
+      ? trechoAntesDoisPontos
+      : 'Requisito';
+
+  return codigo ? `${codigo} ${tituloBase}` : tituloBase;
+}
+
+function montarDescricaoRequisito(requisito) {
+  return [requisito.descricao, requisito.observacoes && `Observacoes: ${requisito.observacoes}`]
+    .filter(Boolean)
+    .join('\n');
+}
+
 async function buscarRequisitosDoProjeto(projetoId) {
   const result = await pool.query(
-    `SELECT r.titulo, r.descricao, r.tipo, r.prioridade
+    `SELECT
+       r.id,
+       rp.codigo_requisito,
+       r.descricao,
+       r.tipo,
+       rp.prioridade,
+       r.observacoes
      FROM requisitos_projeto rp
      JOIN requisitos r ON r.id = rp.requisito_id
      WHERE rp.projeto_id = $1
-     ORDER BY r.id`,
+     ORDER BY rp.codigo_requisito NULLS LAST, r.id`,
     [projetoId]
   );
-  return result.rows;
+
+  return result.rows.map((requisito) => ({
+    codigo: requisito.codigo_requisito,
+    titulo: montarTituloRequisito(requisito),
+    descricao: montarDescricaoRequisito(requisito),
+    tipo: requisito.tipo || 'Funcional',
+    prioridade: requisito.prioridade || 'Media',
+  }));
 }
 
 exports.gerarRequisitos = async (req, res) => {

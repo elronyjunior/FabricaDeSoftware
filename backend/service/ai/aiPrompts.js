@@ -65,7 +65,7 @@ const DOCUMENTO_SCHEMA = `{
       "titulo": "1. Nome da seção",
       "nivel": 1,
       "conteudo": "Parágrafos detalhados da seção",
-      "itens": ["Lista de pontos quando aplicável"],
+      "itens": ["[RF-001] Título do requisito: descrição completa quando aplicável"],
       "subsecoes": [
         {
           "titulo": "1.1 Subseção",
@@ -88,6 +88,9 @@ const DOCUMENTO_SCHEMA = `{
 
 const TIPO_INSTRUCOES = {
   Requisitos: `Documento de Especificação de Requisitos (ERS).
+Siga a lógica do modelo "Requisitos do Projeto": seções numeradas, subseções por categoria e requisitos como itens de lista.
+Estrutura recomendada: 1. Introdução (1.1 Objetivo, 1.2 Público-Alvo), 2. Requisitos Funcionais (RF), 3. Segurança, 4. Requisitos Não Funcionais (RNF), regras de negócio, restrições e matriz de rastreabilidade.
+Para requisitos em "itens", use sempre o padrão "[RF-001] Nome: descrição" ou "[RNF-001] Nome: descrição"; não inclua marcador manual.
 Inclua: visão do produto, stakeholders, glossário, requisitos funcionais detalhados, requisitos não funcionais (performance, segurança, usabilidade, disponibilidade), regras de negócio, restrições e matriz de rastreabilidade.
 Mínimo 8 seções principais e 3 tabelas.`,
   'Casos de Uso': `Documento de Casos de Uso UML.
@@ -142,7 +145,10 @@ Regras:
 - Seções com parágrafos longos e bem elaborados.
 - Use subsecoes aninhadas quando necessário.
 - Tabelas devem ter dados realistas do projeto.
-- Mínimo 6 secoes principais.`,
+- Mínimo 6 secoes principais.
+- Numere os títulos de secoes e subsecoes no próprio campo "titulo" (ex: "2.1 Gestão de Acesso e Perfis").
+- Não use markdown, HTML, pipes, asteriscos, hífens ou bullets manuais para simular formatação.
+- A formatação visual será aplicada pelo código no Google Docs; o JSON deve trazer somente dados estruturados.`,
     temperature: 0.45,
     maxTokens: 12000,
   };

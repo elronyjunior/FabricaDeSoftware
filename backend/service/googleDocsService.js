@@ -23,6 +23,148 @@ async function criarArquivoDoc(drive, titulo) {
   return { id: docId, link: createResponse.data.webViewLink };
 }
 
+function dimensionPt(magnitude) {
+  return { magnitude, unit: 'PT' };
+}
+
+function findTableNearIndex(document, index) {
+  const tables = (document.body?.content || [])
+    .filter((element) => element.table)
+    .sort((a, b) => a.startIndex - b.startIndex);
+
+  return tables.find((table) => table.startIndex >= index - 2) || tables[tables.length - 1];
+}
+
+function buildTableCellRequests(tableElement, rows) {
+  const requests = [];
+  const tableRows = tableElement.table?.tableRows || [];
+  const tableStartIndex = tableElement.startIndex;
+
+  if (Number.isInteger(tableStartIndex)) {
+    requests.push({
+      updateTableCellStyle: {
+        tableStartLocation: { index: tableStartIndex },
+        tableCellStyle: {
+          contentAlignment: 'MIDDLE',
+          paddingTop: dimensionPt(4),
+          paddingRight: dimensionPt(4),
+          paddingBottom: dimensionPt(4),
+          paddingLeft: dimensionPt(4),
+        },
+        fields: 'contentAlignment,paddingTop,paddingRight,paddingBottom,paddingLeft',
+      },
+    });
+
+    if (rows[0]?.length) {
+      requests.push({
+        updateTableCellStyle: {
+          tableRange: {
+            tableCellLocation: {
+              tableStartLocation: { index: tableStartIndex },
+              rowIndex: 0,
+              columnIndex: 0,
+            },
+            rowSpan: 1,
+            columnSpan: rows[0].length,
+          },
+          tableCellStyle: {
+            backgroundColor: {
+              color: {
+                rgbColor: { red: 0.94, green: 0.94, blue: 0.94 },
+              },
+            },
+          },
+          fields: 'backgroundColor',
+        },
+      });
+    }
+  }
+
+  for (let rowIndex = Math.min(tableRows.length, rows.length) - 1; rowIndex >= 0; rowIndex -= 1) {
+    const tableCells = tableRows[rowIndex].tableCells || [];
+    const row = rows[rowIndex] || [];
+
+    for (let colIndex = Math.min(tableCells.length, row.length) - 1; colIndex >= 0; colIndex -= 1) {
+      const text = row[colIndex];
+      if (!text) continue;
+
+      const startIndex = tableCells[colIndex].startIndex + 1;
+      const isHeader = rowIndex === 0;
+      const fields = ['weightedFontFamily', 'fontSize'];
+      const textStyle = {
+        weightedFontFamily: { fontFamily: 'Arial' },
+        fontSize: dimensionPt(10),
+      };
+
+      if (isHeader) {
+        textStyle.bold = true;
+        fields.push('bold');
+      }
+
+      requests.push({
+        insertText: {
+          location: { index: startIndex },
+          text,
+        },
+      });
+      requests.push({
+        updateTextStyle: {
+          range: { startIndex, endIndex: startIndex + text.length },
+          textStyle,
+          fields: fields.join(','),
+        },
+      });
+    }
+  }
+
+  return requests;
+}
+
+async function inserirTabelasNativas(docs, docId, tableJobs) {
+  const jobs = [...tableJobs].sort((a, b) => b.markerStart - a.markerStart);
+
+  for (const job of jobs) {
+    await docs.documents.batchUpdate({
+      documentId: docId,
+      requestBody: {
+        requests: [
+          {
+            deleteContentRange: {
+              range: {
+                startIndex: job.markerStart,
+                endIndex: job.markerEnd,
+              },
+            },
+          },
+          {
+            insertTable: {
+              rows: job.rows.length,
+              columns: job.columnCount,
+              location: { index: job.markerStart },
+            },
+          },
+        ],
+      },
+    });
+
+    const document = await docs.documents.get({ documentId: docId });
+    const tableElement = findTableNearIndex(document.data, job.markerStart);
+
+    if (!tableElement) {
+      throw new Error(`Nao foi possivel localizar a tabela ${job.marker} no Google Docs.`);
+    }
+
+    const cellRequests = buildTableCellRequests(tableElement, job.rows);
+
+    if (cellRequests.length) {
+      await docs.documents.batchUpdate({
+        documentId: docId,
+        requestBody: { requests: cellRequests },
+      });
+    }
+  }
+}
+
 exports.criarDocFromJson = async (tituloArquivo, documentoJson) => {
   const client = getAuthClient();
   const docs = google.docs({ version: 'v1', auth: client });
@@ -33,12 +175,17 @@ exports.criarDocFromJson = async (tituloArquivo, documentoJson) => {
   const { id: docId, link } = await criarArquivoDoc(drive, tituloArquivo);
   const builder = new GoogleDocBuilder();
   const requests = builder.buildFromDocumentJson(documentoJson);
+  const tableJobs = builder.getTableJobs();
 
   if (requests.length > 0) {
     await docs.documents.batchUpdate({
       documentId: docId,
       requestBody: { requests },
     });
+  }
+
+  if (tableJobs.length > 0) {
+    await inserirTabelasNativas(docs, docId, tableJobs);
   }
 
   return { id: docId, link };
