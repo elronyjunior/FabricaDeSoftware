@@ -25,7 +25,7 @@ class _ApiTestScreenState extends State<ApiTestScreen> {
   void initState() {
     super.initState();
     _emailController.text = 'admin@example.com'; // valor para teste
-    _senhaController.text = 'senha123'; // valor para teste
+    _senhaController.text = '123456'; // valor para teste
     _endpointController.text = '/usuarios'; // endpoint inicial
   }
 

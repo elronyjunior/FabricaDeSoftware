@@ -1,3 +1,2 @@
-# Chaves de serviço e segredos
+# Único arquivo de configuração local (não commitar)
 .env
-serviceAccountKey.json

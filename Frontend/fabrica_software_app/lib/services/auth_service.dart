@@ -50,8 +50,7 @@ class AuthService {
         _cachedUserId = json['usuario']['id'];
         _cachedUserNivel = json['usuario']['nivel'];
         _cachedUserName = json['usuario']['nome'];
-        // --- ALTERAÇÃO ---
-        _cachedUserEmail = json['usuario']['email']; // Salva email no cache
+        _cachedUserEmail = json['usuario']['email'];
         _lastTokenRefresh = DateTime.now();
 
         await prefs.setString(_tokenKey, _cachedToken!);
@@ -60,14 +59,22 @@ class AuthService {
         if (_cachedUserName != null) {
           await prefs.setString(_userNameKey, _cachedUserName!);
         }
-        // --- ALTERAÇÃO ---
         if (_cachedUserEmail != null) {
           await prefs.setString(_userEmailKey, _cachedUserEmail!);
         }
         return true;
       }
-      return false;
+
+      String message = 'Email ou senha incorretos.';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['message'] != null) {
+          message = body['message'].toString();
+        }
+      } catch (_) {}
+      throw ApiException(message);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException('Erro ao fazer login: ${e.toString()}');
     }
   }
@@ -126,10 +133,16 @@ class AuthService {
         }
         return true;
       }
-      debugPrint('Falha no backend ao logar com Google: ${response.body}');
-      return false;
+      String message = 'Falha no login com Google.';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map) {
+          message = (body['message'] ?? body['error'] ?? message).toString();
+        }
+      } catch (_) {}
+      throw ApiException(message);
     } catch (e) {
-      debugPrint('Erro no login com Google: ${e.toString()}');
+      if (e is ApiException) rethrow;
       throw ApiException('Erro no login com Google: ${e.toString()}');
     }
   }

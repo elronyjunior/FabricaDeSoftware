@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
+import '../services/base_api_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final _authService = AuthService.instance;
@@ -52,7 +53,7 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       
       if (!success) {
-        _error = 'Credenciais inválidas';
+        _error ??= 'Email ou senha incorretos.';
       } else {
         _isAuthenticated = true;
         // --- CORREÇÃO: Atualiza o ID imediatamente após login ---
@@ -63,6 +64,11 @@ class AuthProvider with ChangeNotifier {
       }
       notifyListeners();
       return success;
+    } on ApiException catch (e) {
+      _isLoading = false;
+      _error = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
@@ -92,6 +98,11 @@ class AuthProvider with ChangeNotifier {
       }
       notifyListeners();
       return success;
+    } on ApiException catch (e) {
+      _isLoading = false;
+      _error = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       _isLoading = false;
       _error = e.toString();

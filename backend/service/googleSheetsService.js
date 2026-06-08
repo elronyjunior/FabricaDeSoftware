@@ -1,16 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const { google } = require('googleapis');
+const { createGoogleAuthClient } = require('../config/env');
 
-const TOKEN_PATH = path.join(__dirname, 'token.json'); 
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-
-const getAuthClient = () => {
-  if (!fs.existsSync(TOKEN_PATH)) throw new Error("Token não encontrado!");
-  const tokenContent = fs.readFileSync(TOKEN_PATH);
-  const credentials = JSON.parse(tokenContent);
-  return google.auth.fromJSON(credentials);
-};
+const getAuthClient = () => createGoogleAuthClient();
 
 const getSheetsClient = () => {
   const auth = getAuthClient();

@@ -4,29 +4,28 @@ const jwt = require("jsonwebtoken");
 // --- CORREÇÃO: Trocamos o 'google-auth-library' pelo 'firebase-admin' ---
 const admin = require('../../firebaseAdmin'); // Ajuste o caminho se necessário
 
-const SECRET_KEY = process.env.JWT_SECRET || "sua_chave_secreta_aqui";
+const { jwtSecret: SECRET_KEY } = require('../../config/env');
 
 // Login (Seu código existente - sem alteração)
 exports.login = async (req, res) => {
   try {
-    console.log('Dados recebidos:', req.body);
-    const { email, senha } = req.body;
-    console.log('Email:', email);
-    console.log('Senha:', senha);
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const senha = req.body.senha;
 
-    console.log('Executando query com:', { email, senha });
+    if (!email || !senha) {
+      return res.status(400).json({ message: 'Email e senha são obrigatórios.' });
+    }
+
     const result = await pool.query(
-      "SELECT * FROM usuarios WHERE email = $1 AND senha = $2",
+      'SELECT * FROM usuarios WHERE LOWER(email) = $1 AND senha = $2',
       [email, senha]
     );
-    console.log('Resultado da query:', result.rows);
 
     const usuario = result.rows[0];
-    console.log('Usuário encontrado:', usuario);
 
     if (!usuario) {
       return res.status(401).json({
-        message: "Credenciais inválidas"
+        message: 'Email ou senha incorretos.',
       });
     }
 
@@ -56,6 +55,7 @@ exports.login = async (req, res) => {
     res.json(resposta);
 
   } catch (error) {
+    console.error('Erro no login:', error.message);
     res.status(500).json({ error: error.message });
   }
 };

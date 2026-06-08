@@ -1,12 +1,12 @@
-// filepath: c:\Users\Arthur\FabricaDeSoftware\db.js
 const { Pool } = require('pg');
+const { db } = require('./config/env');
 
 const pool = new Pool({
-  user: 'postgres',       // substitua pelo seu usuário do PostgreSQL
-  host: 'localhost',         // ou o endereço do seu servidor PostgreSQL
-  database: 'bd_fabrica_software',     // substitua pelo nome do seu banco de dados
-  password: '123',     // substitua pela sua senha
-  port: 5432,                // porta padrão do PostgreSQL
+  user: db.user,
+  host: db.host,
+  database: db.database,
+  password: db.password,
+  port: db.port,
 });
 
 module.exports = pool;

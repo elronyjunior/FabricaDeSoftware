@@ -1,21 +1,50 @@
-const fs = require('fs');
-const path = require('path');
 const { google } = require('googleapis');
+const { createGoogleAuthClient } = require('../config/env');
+const { GoogleDocBuilder } = require('./ai/googleDocBuilder');
 
-// Ajuste os caminhos conforme sua estrutura atual
-const TOKEN_PATH = path.join(__dirname, 'token.json'); 
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+const getAuthClient = () => createGoogleAuthClient();
 
-const getAuthClient = () => {
-  if (!fs.existsSync(TOKEN_PATH)) {
-    throw new Error(`Token não encontrado em: ${TOKEN_PATH}`);
+async function criarArquivoDoc(drive, titulo) {
+  const createResponse = await drive.files.create({
+    resource: {
+      name: titulo,
+      mimeType: 'application/vnd.google-apps.document',
+    },
+    fields: 'id, webViewLink',
+  });
+
+  const docId = createResponse.data.id;
+
+  await drive.permissions.create({
+    fileId: docId,
+    requestBody: { role: 'reader', type: 'anyone' },
+  });
+
+  return { id: docId, link: createResponse.data.webViewLink };
+}
+
+exports.criarDocFromJson = async (tituloArquivo, documentoJson) => {
+  const client = getAuthClient();
+  const docs = google.docs({ version: 'v1', auth: client });
+  const drive = google.drive({ version: 'v3', auth: client });
+
+  console.log(`📄 Criando Doc estruturado: ${tituloArquivo}`);
+
+  const { id: docId, link } = await criarArquivoDoc(drive, tituloArquivo);
+  const builder = new GoogleDocBuilder();
+  const requests = builder.buildFromDocumentJson(documentoJson);
+
+  if (requests.length > 0) {
+    await docs.documents.batchUpdate({
+      documentId: docId,
+      requestBody: { requests },
+    });
   }
-  const tokenContent = fs.readFileSync(TOKEN_PATH);
-  const credentials = JSON.parse(tokenContent);
-  return google.auth.fromJSON(credentials);
+
+  return { id: docId, link };
 };
 
-// --- FUNÇÃO 1: CRIAR DOCUMENTO (COM PERMISSÃO PÚBLICA) ---
+// Mantido para compatibilidade (texto/markdown simples)
 exports.criarDocComConteudo = async (titulo, conteudoTexto) => {
   try {
     const client = getAuthClient();
@@ -24,30 +53,7 @@ exports.criarDocComConteudo = async (titulo, conteudoTexto) => {
 
     console.log(`📄 Criando Doc: ${titulo}`);
 
-    // 1. Criar Arquivo
-    const createResponse = await drive.files.create({
-      resource: {
-        name: titulo,
-        mimeType: 'application/vnd.google-apps.document',
-      },
-      fields: 'id, webViewLink',
-    });
-
-    const docId = createResponse.data.id;
-    const webViewLink = createResponse.data.webViewLink;
-
-    // --- NOVO: 1.5. Liberar acesso para "Qualquer pessoa com o link" ---
-    await drive.permissions.create({
-      fileId: docId,
-      requestBody: {
-        role: 'reader', // Pode ler
-        type: 'anyone', // Qualquer pessoa na internet (com o link)
-      },
-    });
-    console.log(`🔓 Acesso liberado: Qualquer pessoa com o link pode ler.`);
-    // -------------------------------------------------------------------
-
-    // 2. Processar o Markdown (**negrito**)
+    const { id: docId, link: webViewLink } = await criarArquivoDoc(drive, titulo);
     const requests = [];
     let currentIndex = 1;
 

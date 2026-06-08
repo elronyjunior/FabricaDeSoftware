@@ -1,6 +1,7 @@
+
+const { port: PORT } = require('./config/env');
 const express = require("express");
 const cors = require("cors");
-require('dotenv').config(); 
 const authController = require("./controllers/auth/authController.js");
 const usuariosController = require("./controllers/usuarios/usuariosController.js");
 const projetosController = require("./controllers/projetos/projetosController.js");
@@ -189,7 +190,6 @@ app.get("/api/treinamentos/instrutor/:nomeInstrutor", treinamentosController.byI
 app.get("/api/treinamentos/:id", treinamentosController.show);
 app.put("/api/treinamentos/:id", treinamentosController.update);
 app.delete("/api/treinamentos/:id", treinamentosController.delete); // Esta captura qualquer coisa que sobrou
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

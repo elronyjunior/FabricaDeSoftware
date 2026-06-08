@@ -1,9 +1,9 @@
 // controllers/chat/chatController.js
 const OpenAI = require("openai");
+const { openaiApiKey } = require("../../config/env");
 
-// Configuração do cliente OpenAI usando a variável de ambiente
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: openaiApiKey,
 });
 
 exports.sendMessage = async (req, res) => {

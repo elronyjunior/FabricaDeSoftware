@@ -1,22 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const { google } = require('googleapis');
+const { createGoogleAuthClient } = require('../../config/env');
 
-// Caminho do token que você acabou de gerar
-const TOKEN_PATH = path.join(__dirname, 'token.json');
-
-// Função para carregar a autenticação salva
-const getAuthClient = () => {
-  if (!fs.existsSync(TOKEN_PATH)) {
-    throw new Error("Arquivo token.json não encontrado!");
-  }
-  // Lê o arquivo que você colou no chat
-  const tokenContent = fs.readFileSync(TOKEN_PATH);
-  const credentials = JSON.parse(tokenContent);
-  
-  // Transforma o JSON em um cliente autenticado do Google
-  return google.auth.fromJSON(credentials);
-};
+const getAuthClient = () => createGoogleAuthClient();
 
 async function criarDocumentoFinal() {
   try {
