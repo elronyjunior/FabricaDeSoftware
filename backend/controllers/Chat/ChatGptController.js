@@ -1,9 +1,9 @@
 // controllers/chat/chatController.js
 const OpenAI = require("openai");
-const { openaiApiKey } = require("../../config/env");
+const { anthropicApiKey } = require("../../config/env");
 
 const openai = new OpenAI({
-  apiKey: openaiApiKey,
+  apiKey: anthropicApiKey,
 });
 
 exports.sendMessage = async (req, res) => {

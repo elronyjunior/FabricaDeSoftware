@@ -52,7 +52,7 @@ module.exports = {
   firebaseServiceAccount,
   port: parseInt(process.env.PORT || '3000', 10),
   jwtSecret: requireEnv('JWT_SECRET'),
-  openaiApiKey: process.env.OPENAI_API_KEY,
-  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  anthropicModel: process.env.OPENAI_MODEL || 'claude-sonnet-4-5',
   createGoogleAuthClient,
 };

@@ -1,27 +1,42 @@
-const OpenAI = require('openai');
-const { openaiApiKey, openaiModel } = require('../../config/env');
+const Anthropic = require('@anthropic-ai/sdk');
+
+const {
+  anthropicApiKey,
+  anthropicModel,
+} = require('../../config/env');
+
 const { parseJsonFromAi } = require('./jsonParser');
 
-const openai = new OpenAI({ apiKey: openaiApiKey });
+const anthropic = new Anthropic({
+  apiKey: anthropicApiKey,
+});
 
-async function chatJson({ system, user, temperature = 0.4, maxTokens = 8000 }) {
-  if (!openaiApiKey) {
-    throw new Error('OPENAI_API_KEY não configurada no .env');
+async function chatJson({
+  system,
+  user,
+  temperature = 0.4,
+  maxTokens = 8000,
+}) {
+  if (!anthropicApiKey) {
+    throw new Error('ANTHROPIC_API_KEY não configurada no .env');
   }
 
-  const completion = await openai.chat.completions.create({
-    model: openaiModel,
-    temperature,
+  const response = await anthropic.messages.create({
+    model: anthropicModel,
     max_tokens: maxTokens,
-    response_format: { type: 'json_object' },
+    temperature,
+    system,
     messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
+      {
+        role: 'user',
+        content: user,
+      },
     ],
   });
 
-  const content = completion.choices[0]?.message?.content;
+  const content = response.content?.[0]?.text || '{}';
+
   return parseJsonFromAi(content);
 }
-
+console.log("Modelo:", anthropicModel);
 module.exports = { chatJson };
