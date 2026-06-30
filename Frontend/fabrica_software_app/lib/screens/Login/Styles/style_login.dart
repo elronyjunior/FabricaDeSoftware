@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 
 class StyleLogin {
 
-static ButtonStyle btnGoogle = ElevatedButton.styleFrom
-  (
+static ButtonStyle btnGoogle = ElevatedButton.styleFrom(
     padding: const EdgeInsets.symmetric(vertical: 14),
-    foregroundColor: const Color.fromARGB(255, 179, 172, 172),
-    backgroundColor: const Color.fromARGB(255, 233, 233, 233),
-    side: BorderSide(color: const Color.fromARGB(255, 233, 233, 233)),
+    foregroundColor: Colors.black87,
+    backgroundColor: Colors.white,
+    side: const BorderSide(color: Color(0xFFE9E9E9)),
     shadowColor: Colors.transparent,
     surfaceTintColor: Colors.transparent,
-    minimumSize: const Size(double.infinity, 50),
+    minimumSize: const Size(double.infinity, 52),
     elevation: 0,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8.0),
+      borderRadius: BorderRadius.circular(16.0),
     ),
   );
 
