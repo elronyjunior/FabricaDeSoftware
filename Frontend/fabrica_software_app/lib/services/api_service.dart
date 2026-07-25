@@ -229,8 +229,8 @@ class ApiService {
             body: jsonEncode({
               "projeto_id": projetoId,
               "requisito_id": reqId,
-              "prioridade": req['prioridade'].toString().toLowerCase(),
-              "codigo_requisito": "REQ-${DateTime.now().millisecondsSinceEpoch}",
+              "prioridade": req['prioridade']?.toString().toLowerCase() ?? 'media',
+              "codigo_requisito": req['codigo'] ?? "REQ-${DateTime.now().millisecondsSinceEpoch}",
               "criado_por_id": dtoData['criado_por_id'] ?? dtoData['responsavel_id'] ?? 0
             })
           );

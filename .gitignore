@@ -1,0 +1,12 @@
+# Dependências — nunca versionar, reinstale com `npm install` / `flutter pub get`.
+node_modules/
+
+# Variáveis de ambiente e segredos locais.
+.env
+.env.*
+!.env.*.example
+serviceAccountKey.json
+
+# Sistema operacional / editores.
+.DS_Store
+Thumbs.db

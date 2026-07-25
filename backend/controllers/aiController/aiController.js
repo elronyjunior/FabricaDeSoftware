@@ -1,6 +1,6 @@
 const pool = require('../../db');
 const googleDocsService = require('../../service/googleDocsService');
-const { chatJson } = require('../../service/ai/openaiService');
+const { chatJson } = require('../../service/ai/claudeService');
 const {
   buildRequisitosPrompt,
   buildDocumentoPrompt,

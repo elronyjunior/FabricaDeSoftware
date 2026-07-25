@@ -1,9 +1,9 @@
 // controllers/chat/chatController.js
-const OpenAI = require("openai");
-const { openaiApiKey } = require("../../config/env");
+const Anthropic = require("@anthropic-ai/sdk");
+const { claudeApiKey } = require("../../config/env");
 
-const openai = new OpenAI({
-  apiKey: openaiApiKey,
+const anthropic = new Anthropic({
+  apiKey: claudeApiKey,
 });
 
 exports.sendMessage = async (req, res) => {
@@ -17,31 +17,30 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // Chamada para a API da OpenAI
-    // Você pode trocar o model para 'gpt-4o' se tiver acesso e quiser mais inteligência (é mais caro)
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", 
+    // Chamada para a API da Anthropic (Claude)
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
       messages: [
-        { role: "system", content: "Você é um assistente útil integrado a um sistema de gerenciamento de projetos." },
         { role: "user", content: message }
       ],
+      system: "Você é um assistente útil integrado a um sistema de gerenciamento de projetos.",
       max_tokens: 500, // Limita o tamanho da resposta para economizar
     });
 
-    const responseText = completion.choices[0].message.content;
+    const responseText = response.content[0].text;
 
     // Retorna a resposta para o seu Frontend em Flutter
     res.json({
       response: responseText,
-      usage: completion.usage // Opcional: para você monitorar o gasto de tokens
+      usage: response.usage // Opcional: para você monitorar o gasto de tokens
     });
 
   } catch (error) {
-    console.error("Erro ao chamar OpenAI:", error);
+    console.error("Erro ao chamar Claude:", error);
     
-    // Tratamento de erro específico da OpenAI
-    if (error.response) {
-      return res.status(error.response.status).json(error.response.data);
+    // Tratamento de erro específico da Anthropic
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
     }
     
     res.status(500).json({ 

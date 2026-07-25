@@ -57,21 +57,21 @@ const DOCUMENTO_SCHEMA = `{
   "metadata": {
     "projeto": "Nome do projeto",
     "autor": "IA - Fábrica de Software",
-    "objetivo": "Objetivo principal do documento"
+    "objetivo": "Objetivo principal"
   },
-  "sumario_executivo": "Parágrafo de 5 a 8 frases com visão geral executiva",
+  "sumario_executivo": "Resumo direto em 2 a 3 frases",
   "secoes": [
     {
       "titulo": "1. Nome da seção",
       "nivel": 1,
-      "conteudo": "Parágrafos detalhados da seção",
-      "itens": ["[RF-001] Título do requisito: descrição completa quando aplicável"],
+      "conteudo": "Explicação direta (máximo 2 parágrafos curtos)",
+      "itens": ["[RF-001] Requisito ou Tópico: Descrição concisa"],
       "subsecoes": [
         {
           "titulo": "1.1 Subseção",
           "nivel": 2,
-          "conteudo": "Texto detalhado",
-          "itens": []
+          "conteudo": "Texto objetivo ou introdução aos itens",
+          "itens": ["Ponto chave 1", "Ponto chave 2"]
         }
       ]
     }
@@ -83,7 +83,7 @@ const DOCUMENTO_SCHEMA = `{
       "linhas": [["valor", "valor"]]
     }
   ],
-  "conclusao": "Parágrafo de conclusão e próximos passos"
+  "conclusao": "Uma ou duas frases de conclusão"
 }`;
 
 const TIPO_INSTRUCOES = {
@@ -140,17 +140,15 @@ ${descricaoExtra || 'Siga as melhores práticas de engenharia de software.'}
 Retorne EXCLUSIVAMENTE um JSON neste formato:
 ${DOCUMENTO_SCHEMA}
 
-Regras:
-- Conteúdo profundo e específico ao projeto (não genérico).
-- Seções com parágrafos longos e bem elaborados.
-- Use subsecoes aninhadas quando necessário.
-- Tabelas devem ter dados realistas do projeto.
-- Mínimo 6 secoes principais.
-- Numere os títulos de secoes e subsecoes no próprio campo "titulo" (ex: "2.1 Gestão de Acesso e Perfis").
-- Não use markdown, HTML, pipes, asteriscos, hífens ou bullets manuais para simular formatação.
-- A formatação visual será aplicada pelo código no Google Docs; o JSON deve trazer somente dados estruturados.`,
+Regras CRÍTICAS para velocidade e qualidade:
+1. SEJA EXTREMAMENTE OBJETIVO. Use tópicos curtos (array de "itens") em vez de parágrafos densos.
+2. Foque em dados técnicos puros. Remova introduções genéricas (ex: "Este documento visa...").
+3. Limite descrições a 2 ou 3 frases no máximo. A qualidade técnica está na precisão, não na quantidade de palavras.
+4. Numere os títulos de seções no próprio campo "titulo" (ex: "2.1 Segurança").
+5. O documento final será gerado no Google Docs; seu JSON será o motor de dados. Não use markdown.
+6. FIDELIDADE AOS REQUISITOS: Quando listar requisitos no documento, use EXATAMENTE e APENAS os fornecidos em "REQUISITOS JÁ CADASTRADOS NO PROJETO". Não omita nenhum requisito da lista e NUNCA invente novos.\``,
     temperature: 0.45,
-    maxTokens: 12000,
+    maxTokens: 16000,
   };
 }
 
