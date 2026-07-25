@@ -182,8 +182,102 @@ function formatRequisitoForApi(requisito) {
   };
 }
 
+function buscarSecaoPorCaminho(secoes, caminho) {
+  let nivelAtual = Array.isArray(secoes) ? secoes : [];
+  let secao = null;
+
+  for (const indice of caminho) {
+    secao = nivelAtual[indice];
+    if (!secao) return null;
+    nivelAtual = Array.isArray(secao.subsecoes) ? secao.subsecoes : [];
+  }
+
+  return secao;
+}
+
+function caminhoIgual(a, b) {
+  return a.length === b.length && a.every((valor, indice) => valor === b[indice]);
+}
+
+// Resumo estrutural do documento inteiro (só títulos/nível, sem o texto
+// completo de cada seção) — é isso que permite dar contexto pra IA sem o
+// custo/tempo crescer com o tamanho do documento todo: só as seções alvo
+// entram com o conteúdo completo no prompt.
+function montarResumoEstrutural(secoes, caminhosAlvo, caminhoAtual = []) {
+  if (!Array.isArray(secoes)) return '';
+
+  return secoes
+    .map((secao, indice) => {
+      const caminho = [...caminhoAtual, indice];
+      const eAlvo = caminhosAlvo.some((alvo) => caminhoIgual(alvo, caminho));
+      const indentacao = '  '.repeat(caminho.length - 1);
+      const marcador = eAlvo ? '  <== SEÇÃO ALVO (será reescrita)' : '';
+      const linha = `${indentacao}- [nível ${secao.nivel}] ${secao.titulo || '(sem título)'}${marcador}`;
+      const subLinhas = montarResumoEstrutural(secao.subsecoes, caminhosAlvo, caminho);
+      return [linha, subLinhas].filter(Boolean).join('\n');
+    })
+    .join('\n');
+}
+
+const RETRABALHO_SYSTEM = `Você é um analista/arquiteto de software sênior revisando um documento técnico já existente.
+Você reescreve APENAS a(s) seção(ões) marcada(s) como alvo, usando o restante do documento apenas como contexto para manter consistência e evitar repetição.
+Não invente novas seções fora das indicadas, a menos que a instrução do usuário peça explicitamente para dividir a seção alvo em subseções.
+Sempre responda em português do Brasil.
+Sua saída DEVE ser um JSON válido, sem markdown, sem comentários e sem texto fora do JSON.`;
+
+function buildRetrabalhoPrompt({ documento, caminhos, instrucao }) {
+  const resumoEstrutural = montarResumoEstrutural(documento.secoes, caminhos);
+
+  const secoesAlvoTexto = caminhos
+    .map((caminho) => {
+      const secaoAtual = buscarSecaoPorCaminho(documento.secoes, caminho);
+      return `Caminho ${JSON.stringify(caminho)}:\n${JSON.stringify(secaoAtual)}`;
+    })
+    .join('\n\n');
+
+  return {
+    system: RETRABALHO_SYSTEM,
+    user: `DOCUMENTO: "${documento.titulo || 'Sem título'}"
+${documento.sumario_executivo ? `Resumo: ${documento.sumario_executivo}` : ''}
+
+ESTRUTURA COMPLETA DO DOCUMENTO (contexto — não reescreva o que não estiver marcado como alvo):
+${resumoEstrutural}
+
+SEÇÃO(ÕES) ALVO A REESCREVER (conteúdo atual):
+${secoesAlvoTexto}
+
+INSTRUÇÃO DO USUÁRIO:
+${(instrucao || '').trim() || 'Melhore a clareza, profundidade e qualidade técnica desta(s) seção(ões), mantendo o mesmo assunto.'}
+
+Retorne EXCLUSIVAMENTE este JSON, com uma entrada por seção alvo, na mesma ordem em que foram apresentadas acima:
+{
+  "secoes": [
+    {
+      "caminho": [0],
+      "secao": {
+        "titulo": "...",
+        "nivel": 1,
+        "conteudo": "...",
+        "itens": ["..."],
+        "subsecoes": []
+      }
+    }
+  ]
+}
+
+Regras:
+- "caminho" deve ser copiado exatamente como foi apresentado para cada seção alvo, sem alterar.
+- "secao" segue exatamente esse formato (titulo, nivel, conteudo, itens, subsecoes), mesmo que subsecoes fique vazio.
+- Não inclua nenhuma seção que não esteja na lista de alvos.`,
+    temperature: 0.5,
+    maxTokens: Math.min(16000, 3000 * caminhos.length + 2000),
+  };
+}
+
 module.exports = {
   buildRequisitosPrompt,
   buildDocumentoPrompt,
   formatRequisitoForApi,
+  buildRetrabalhoPrompt,
+  buscarSecaoPorCaminho,
 };

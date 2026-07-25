@@ -47,9 +47,8 @@ function repairTruncatedJson(text) {
   // Se parou logo após dois-pontos (ex: "campo": ), adiciona um null pra fechar o par
   s = s.replace(/(:\s*)$/, ': null');
 
-  // 4. Conta chaves e colchetes abertos para fechá-los
-  let openBraces = 0;
-  let openBrackets = 0;
+  // 4. Empilha chaves/colchetes abertos, na ordem em que foram abertos
+  const pilha = [];
   inString = false;
   escape = false;
   for (let i = 0; i < s.length; i++) {
@@ -57,16 +56,15 @@ function repairTruncatedJson(text) {
     if (s[i] === '\\') { escape = true; continue; }
     if (s[i] === '"') { inString = !inString; continue; }
     if (!inString) {
-      if (s[i] === '{') openBraces++;
-      if (s[i] === '}') openBraces--;
-      if (s[i] === '[') openBrackets++;
-      if (s[i] === ']') openBrackets--;
+      if (s[i] === '{') pilha.push('}');
+      else if (s[i] === '[') pilha.push(']');
+      else if (s[i] === '}' || s[i] === ']') pilha.pop();
     }
   }
 
-  // 5. Fecha do mais interno pro mais externo
-  while (openBrackets > 0) { s += ']'; openBrackets--; }
-  while (openBraces > 0) { s += '}'; openBraces--; }
+  // 5. Fecha do mais interno pro mais externo (ordem LIFO, respeitando o
+  // aninhamento real — ex: "{[{" deve fechar como "}]}", nunca "]}}")
+  while (pilha.length > 0) { s += pilha.pop(); }
 
   return s;
 }

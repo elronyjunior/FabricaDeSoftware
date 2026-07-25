@@ -27,14 +27,6 @@ function dimensionPt(magnitude) {
   return { magnitude, unit: 'PT' };
 }
 
-function findTableNearIndex(document, index) {
-  const tables = (document.body?.content || [])
-    .filter((element) => element.table)
-    .sort((a, b) => a.startIndex - b.startIndex);
-
-  return tables.find((table) => table.startIndex >= index - 2) || tables[tables.length - 1];
-}
-
 function buildTableCellRequests(tableElement, rows) {
   const requests = [];
   const tableRows = tableElement.table?.tableRows || [];
@@ -121,47 +113,66 @@ function buildTableCellRequests(tableElement, rows) {
 }
 
 async function inserirTabelasNativas(docs, docId, tableJobs) {
-  const jobs = [...tableJobs].sort((a, b) => b.markerStart - a.markerStart);
+  if (!tableJobs.length) return;
 
-  for (const job of jobs) {
-    await docs.documents.batchUpdate({
-      documentId: docId,
-      requestBody: {
-        requests: [
-          {
-            deleteContentRange: {
-              range: {
-                startIndex: job.markerStart,
-                endIndex: job.markerEnd,
-              },
-            },
-          },
-          {
-            insertTable: {
-              rows: job.rows.length,
-              columns: job.columnCount,
-              location: { index: job.markerStart },
-            },
-          },
-        ],
+  // Processa da maior posição para a menor: como cada insercao acontece no
+  // proprio ponto do marcador, indices ainda nao processados (menores) nunca
+  // sao deslocados, entao todas as tabelas podem ser criadas em 1 unica chamada.
+  const jobsDesc = [...tableJobs].sort((a, b) => b.markerStart - a.markerStart);
+  const structureRequests = jobsDesc.flatMap((job) => [
+    {
+      deleteContentRange: {
+        range: {
+          startIndex: job.markerStart,
+          endIndex: job.markerEnd,
+        },
       },
-    });
+    },
+    {
+      insertTable: {
+        rows: job.rows.length,
+        columns: job.columnCount,
+        location: { index: job.markerStart },
+      },
+    },
+  ]);
 
-    const document = await docs.documents.get({ documentId: docId });
-    const tableElement = findTableNearIndex(document.data, job.markerStart);
+  await docs.documents.batchUpdate({
+    documentId: docId,
+    requestBody: { requests: structureRequests },
+  });
 
+  // 1 unica leitura do documento para localizar todas as tabelas inseridas,
+  // em vez de 1 leitura por tabela.
+  const document = await docs.documents.get({ documentId: docId });
+  const tabelasInseridas = (document.data.body?.content || [])
+    .filter((element) => element.table)
+    .sort((a, b) => a.startIndex - b.startIndex);
+
+  // A ordem relativa das tabelas no documento final corresponde a ordem
+  // original dos marcadores (cada insercao substitui seu proprio marcador).
+  const jobsAsc = [...tableJobs].sort((a, b) => a.markerStart - b.markerStart);
+  const paresOrdenados = jobsAsc.map((job, index) => ({ job, tableElement: tabelasInseridas[index] }));
+
+  paresOrdenados.forEach(({ job, tableElement }) => {
     if (!tableElement) {
       throw new Error(`Nao foi possivel localizar a tabela ${job.marker} no Google Docs.`);
     }
+  });
 
-    const cellRequests = buildTableCellRequests(tableElement, job.rows);
+  // Inserir texto em uma tabela desloca os indices de tudo que vem depois dela
+  // no documento. Por isso, dentro deste unico batchUpdate, as tabelas devem
+  // ser processadas da que esta mais no fim do documento para a que esta mais
+  // no inicio (mesma logica ja usada entre celulas de uma mesma tabela).
+  const cellRequests = [...paresOrdenados]
+    .sort((a, b) => b.tableElement.startIndex - a.tableElement.startIndex)
+    .flatMap(({ job, tableElement }) => buildTableCellRequests(tableElement, job.rows));
 
-    if (cellRequests.length) {
-      await docs.documents.batchUpdate({
-        documentId: docId,
-        requestBody: { requests: cellRequests },
-      });
-    }
+  if (cellRequests.length) {
+    await docs.documents.batchUpdate({
+      documentId: docId,
+      requestBody: { requests: cellRequests },
+    });
   }
 }
 

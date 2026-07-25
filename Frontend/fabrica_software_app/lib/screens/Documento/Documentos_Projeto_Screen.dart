@@ -1,4 +1,5 @@
 import 'package:fabrica_software_app/screens/Documento/Criar_Doc_Modal.dart';
+import 'package:fabrica_software_app/screens/Documento/Visualizar_Documento_Screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fabrica_software_app/models/projeto.dart';
 import 'package:fabrica_software_app/services/documento_service.dart';
@@ -50,6 +51,28 @@ class _DocumentosProjetoScreenState extends State<DocumentosProjetoScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro ao abrir link")));
     }
+  }
+
+  // Documentos gerados depois da persistência do JSON abrem o editor in-app;
+  // documentos legados (sem conteudo_json) continuam abrindo o Google Docs
+  // externamente, como já era feito.
+  void _abrirDocumento(dynamic doc) {
+    final editavel = doc['tem_conteudo_editavel'] == true;
+    if (!editavel) {
+      _abrirLink(doc['arquivo_url']);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VisualizarDocumentoScreen(
+          documentoId: int.parse(doc['id'].toString()),
+          nomeArquivo: doc['nome_do_arquivo'] ?? 'Documento',
+          arquivoUrl: doc['arquivo_url'],
+        ),
+      ),
+    );
   }
 
   // Lógica para Deletar (Banco + Drive)
@@ -217,6 +240,28 @@ class _DocumentosProjetoScreenState extends State<DocumentosProjetoScreen> {
                         decoration: BoxDecoration(color: tagColorBg, borderRadius: BorderRadius.circular(4)),
                         child: Text(tipo, style: TextStyle(color: tagColorText, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
+                      const SizedBox(width: 6),
+                      // Indica se o documento pode ser editado no app ou é
+                      // um documento legado (só visível no Google Docs).
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: doc['tem_conteudo_editavel'] == true
+                              ? const Color(0xFFEDE9FE)
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          doc['tem_conteudo_editavel'] == true ? 'Editável' : 'Legado',
+                          style: TextStyle(
+                            color: doc['tem_conteudo_editavel'] == true
+                                ? const Color(0xFF6D28D9)
+                                : Colors.grey.shade600,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -247,7 +292,7 @@ class _DocumentosProjetoScreenState extends State<DocumentosProjetoScreen> {
               children: [
                 // Botão Ver (Olho Azul)
                 InkWell(
-                  onTap: () => _abrirLink(doc['arquivo_url']),
+                  onTap: () => _abrirDocumento(doc),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Icon(Icons.remove_red_eye_outlined, color: Colors.blue.shade600, size: 20),

@@ -1,10 +1,14 @@
 const pool = require('../../db');
 const googleDocsService = require('../../service/googleDocsService');
 const { chatJson } = require('../../service/ai/claudeService');
+const { createJob, updateJob, getJob } = require('../../service/ai/jobStore');
+const { validarSecao } = require('../../service/documentos/validarConteudoDocumento');
 const {
   buildRequisitosPrompt,
   buildDocumentoPrompt,
   formatRequisitoForApi,
+  buildRetrabalhoPrompt,
+  buscarSecaoPorCaminho,
 } = require('../../service/ai/aiPrompts');
 
 function montarTituloRequisito(requisito) {
@@ -80,12 +84,14 @@ exports.gerarRequisitos = async (req, res) => {
 
 exports.estimarOrcamento = async (req, res) => {
   try {
-    const { nome, descricao, escopo, equipe, recursos, duracao_dias } = req.body;
+    const { nome, descricao, escopo, duracao_dias } = req.body;
+    const equipe = Array.isArray(req.body.equipe) ? req.body.equipe : [];
+    const recursos = Array.isArray(req.body.recursos) ? req.body.recursos : [];
 
     const prompt = `
       Atue como um Gerente de Projetos Sênior.
       Analise este projeto para estimar Orçamento e Complexidade.
-      
+
       DADOS:
       - Projeto: ${nome}
       - Descrição: ${descricao}
@@ -93,7 +99,7 @@ exports.estimarOrcamento = async (req, res) => {
       - Duração: ${duracao_dias} dias
       - Equipe: ${equipe.length} pessoas (${equipe.map((e) => e.papel).join(', ')})
       - Recursos: ${recursos.length} itens
-      
+
       Retorne JSON:
       {
         "orcamento_estimado": 0.00,
@@ -108,8 +114,10 @@ exports.estimarOrcamento = async (req, res) => {
       maxTokens: 500,
     });
 
+    const orcamentoNumerico = Number(data.orcamento_estimado);
+
     res.json({
-      orcamento_estimado: data.orcamento_estimado || 0.0,
+      orcamento_estimado: Number.isFinite(orcamentoNumerico) ? orcamentoNumerico : 0.0,
       complexidade: data.complexidade || 'media',
     });
   } catch (error) {
@@ -118,76 +126,171 @@ exports.estimarOrcamento = async (req, res) => {
   }
 };
 
-exports.gerarDocumentoIA = async (req, res) => {
-  try {
-    const { projetoId, tipoDocumento, tituloDocumento, descricaoExtra } = req.body;
+async function processarGeracaoDocumento(jobId, { projetoId, tipoDocumento, tituloDocumento, descricaoExtra }) {
+  updateJob(jobId, { stage: 'buscando_dados_do_projeto' });
 
-    if (!projetoId || !tipoDocumento || !tituloDocumento?.trim()) {
-      return res.status(400).json({
-        message: 'projetoId, tipoDocumento e tituloDocumento são obrigatórios.',
-      });
-    }
+  const projetoQuery = await pool.query('SELECT * FROM projetos WHERE id = $1', [projetoId]);
+  const projeto = projetoQuery.rows[0];
 
-    const projetoQuery = await pool.query('SELECT * FROM projetos WHERE id = $1', [projetoId]);
-    const projeto = projetoQuery.rows[0];
+  if (!projeto) {
+    updateJob(jobId, { status: 'error', error: 'Projeto não encontrado' });
+    return;
+  }
 
-    if (!projeto) {
-      return res.status(404).json({ message: 'Projeto não encontrado' });
-    }
+  const requisitos = await buscarRequisitosDoProjeto(projetoId);
 
-    const requisitos = await buscarRequisitosDoProjeto(projetoId);
+  const prompt = buildDocumentoPrompt({
+    projeto,
+    tipoDocumento,
+    tituloDocumento,
+    descricaoExtra,
+    requisitos,
+  });
 
-    const prompt = buildDocumentoPrompt({
-      projeto,
+  updateJob(jobId, { stage: 'gerando_conteudo_com_ia' });
+  console.log('🤖 Gerando documento JSON com IA...');
+  const documentoJson = await chatJson({
+    system: prompt.system,
+    user: prompt.user,
+    temperature: prompt.temperature,
+    maxTokens: prompt.maxTokens,
+  });
+
+  documentoJson.titulo = documentoJson.titulo || tituloDocumento;
+  documentoJson.tipo_documento = documentoJson.tipo_documento || tipoDocumento;
+  documentoJson.metadata = {
+    ...(documentoJson.metadata || {}),
+    projeto: projeto.nome_projeto,
+  };
+
+  updateJob(jobId, { stage: 'criando_documento_no_google_docs' });
+  console.log('📄 Formatando Google Doc a partir do JSON...');
+  const nomeArquivo = `${tituloDocumento} - ${projeto.nome_projeto}`;
+  const docInfo = await googleDocsService.criarDocFromJson(nomeArquivo, documentoJson);
+
+  const insertDoc = await pool.query(
+    `INSERT INTO documentos (
+      projeto_id, nome_do_arquivo, arquivo_url, tipo, descricao, data_criacao, conteudo_json
+    )
+    VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+    RETURNING *`,
+    [
+      projetoId,
+      tituloDocumento,
+      docInfo.link,
       tipoDocumento,
-      tituloDocumento: tituloDocumento.trim(),
-      descricaoExtra,
-      requisitos,
-    });
+      'Documento gerado automaticamente pela IA (JSON estruturado)',
+      JSON.stringify(documentoJson),
+    ]
+  );
 
-    console.log('🤖 Gerando documento JSON com IA...');
-    const documentoJson = await chatJson({
-      system: prompt.system,
-      user: prompt.user,
-      temperature: prompt.temperature,
-      maxTokens: prompt.maxTokens,
-    });
+  console.log('✅ Documento gerado e salvo!');
 
-    documentoJson.titulo = documentoJson.titulo || tituloDocumento;
-    documentoJson.tipo_documento = documentoJson.tipo_documento || tipoDocumento;
-    documentoJson.metadata = {
-      ...(documentoJson.metadata || {}),
-      projeto: projeto.nome_projeto,
-    };
-
-    console.log('📄 Formatando Google Doc a partir do JSON...');
-    const nomeArquivo = `${tituloDocumento} - ${projeto.nome_projeto}`;
-    const docInfo = await googleDocsService.criarDocFromJson(nomeArquivo, documentoJson);
-
-    const insertDoc = await pool.query(
-      `INSERT INTO documentos (
-        projeto_id, nome_do_arquivo, arquivo_url, tipo, descricao, data_criacao
-      )
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING *`,
-      [
-        projetoId,
-        tituloDocumento,
-        docInfo.link,
-        tipoDocumento,
-        'Documento gerado automaticamente pela IA (JSON estruturado)',
-      ]
-    );
-
-    console.log('✅ Documento gerado e salvo!');
-
-    res.json({
+  updateJob(jobId, {
+    status: 'done',
+    result: {
       message: 'Documento gerado com sucesso!',
       documento: insertDoc.rows[0],
       googleDocId: docInfo.id,
+    },
+  });
+}
+
+exports.gerarDocumentoIA = async (req, res) => {
+  const { projetoId, tipoDocumento, tituloDocumento, descricaoExtra } = req.body;
+
+  if (!projetoId || !tipoDocumento || !tituloDocumento?.trim()) {
+    return res.status(400).json({
+      message: 'projetoId, tipoDocumento e tituloDocumento são obrigatórios.',
     });
-  } catch (error) {
-    console.error('Erro ao gerar documento IA:', error);
-    res.status(500).json({ error: error.message });
   }
+
+  const jobId = createJob();
+  res.status(202).json({ jobId, status: 'processing' });
+
+  processarGeracaoDocumento(jobId, {
+    projetoId,
+    tipoDocumento,
+    tituloDocumento: tituloDocumento.trim(),
+    descricaoExtra,
+  }).catch((error) => {
+    console.error('Erro ao gerar documento IA:', error);
+    updateJob(jobId, { status: 'error', error: error.message || 'Falha na IA ao gerar documento' });
+  });
+};
+
+// Reescreve com IA apenas a(s) seção(ões) indicadas por "caminho" (índice do
+// array em cada nível de secoes/subsecoes), usando o resto do documento só
+// como contexto estrutural (títulos, não o texto completo) — o custo/tempo
+// dessa chamada escala com o que foi selecionado, não com o tamanho do
+// documento inteiro. Não toca no banco: opera sobre o JSON que o cliente já
+// tem em memória (inclusive edições ainda não salvas) e devolve só as
+// seções reescritas; salvar continua sendo uma ação separada do usuário.
+async function processarRetrabalhoSecoes(jobId, { documento, caminhos, instrucao }) {
+  updateJob(jobId, { stage: 'gerando_reescrita_com_ia' });
+
+  const prompt = buildRetrabalhoPrompt({ documento, caminhos, instrucao });
+
+  const data = await chatJson({
+    system: prompt.system,
+    user: prompt.user,
+    temperature: prompt.temperature,
+    maxTokens: prompt.maxTokens,
+  });
+
+  const secoesRetornadas = Array.isArray(data.secoes) ? data.secoes : [];
+
+  for (const item of secoesRetornadas) {
+    const erro = validarSecao(item.secao, `secoes[caminho=${JSON.stringify(item.caminho)}]`);
+    if (erro) {
+      updateJob(jobId, { status: 'error', error: `A IA retornou uma seção inválida: ${erro}` });
+      return;
+    }
+  }
+
+  updateJob(jobId, {
+    status: 'done',
+    result: { secoes: secoesRetornadas },
+  });
+}
+
+exports.retrabalharSecoes = async (req, res) => {
+  const { documento, caminhos, instrucao } = req.body;
+
+  if (!documento || !Array.isArray(documento.secoes)) {
+    return res.status(400).json({ message: 'documento (com secoes) é obrigatório.' });
+  }
+
+  if (!Array.isArray(caminhos) || caminhos.length === 0) {
+    return res.status(400).json({ message: 'Selecione ao menos uma seção para retrabalhar.' });
+  }
+
+  for (const caminho of caminhos) {
+    if (!Array.isArray(caminho) || caminho.some((indice) => !Number.isInteger(indice) || indice < 0)) {
+      return res.status(400).json({ message: `Caminho inválido: ${JSON.stringify(caminho)}` });
+    }
+    if (!buscarSecaoPorCaminho(documento.secoes, caminho)) {
+      return res.status(400).json({ message: `Seção não encontrada no caminho ${JSON.stringify(caminho)}` });
+    }
+  }
+
+  const jobId = createJob();
+  res.status(202).json({ jobId, status: 'processing' });
+
+  processarRetrabalhoSecoes(jobId, { documento, caminhos, instrucao }).catch((error) => {
+    console.error('Erro ao retrabalhar seções com IA:', error);
+    updateJob(jobId, { status: 'error', error: error.message || 'Falha na IA ao retrabalhar seções' });
+  });
+};
+
+// Genérico: consulta o status de qualquer job de IA (geração de documento ou
+// retrabalho de seções), já que o jobStore não distingue a origem.
+exports.statusJob = (req, res) => {
+  const job = getJob(req.params.jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job não encontrado ou expirado' });
+  }
+
+  res.json(job);
 };

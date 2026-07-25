@@ -9,9 +9,9 @@ async function chatJson({ system, user, temperature = 0.4, maxTokens = 16000 }) 
     throw new Error('Claude_API não configurada no .env');
   }
 
-  console.log('🚀 Iniciando requisição para a API do Claude...');
+  console.log('🚀 Iniciando requisição (streaming) para a API do Claude...');
   console.time('⏳ Tempo total da API do Claude');
-  const response = await anthropic.messages.create({
+  const stream = anthropic.messages.stream({
     model: claudeModel,
     temperature,
     max_tokens: maxTokens,
@@ -20,6 +20,7 @@ async function chatJson({ system, user, temperature = 0.4, maxTokens = 16000 }) 
       { role: 'user', content: user },
     ],
   });
+  const response = await stream.finalMessage();
   console.timeEnd('⏳ Tempo total da API do Claude');
 
   const content = response.content[0]?.text;

@@ -168,9 +168,10 @@ class _PlanejamentoContentState extends State<_PlanejamentoContent> {
       };
 
       final resultado = await ApiService.estimarOrcamentoBackend(dadosParaIA);
-      
+
       setState(() {
-        double valor = (resultado['orcamento_estimado'] as num).toDouble();
+        final bruto = resultado['orcamento_estimado'];
+        double valor = bruto is num ? bruto.toDouble() : double.tryParse(bruto.toString()) ?? 0.0;
         String complexidade = resultado['complexidade'] ?? 'media';
         _orcamentoCtrl.text = valor.toStringAsFixed(2);
         projetoDraft.orcamentoEstimado = valor;

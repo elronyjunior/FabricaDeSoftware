@@ -1,4 +1,5 @@
 import 'package:fabrica_software_app/models/projeto.dart';
+import 'package:fabrica_software_app/models/enums.dart';
 import 'package:fabrica_software_app/screens/Tests/Teste_screen.dart';
 import 'package:fabrica_software_app/screens/Treinamentos/ListaTreinamentosScreen.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,24 @@ class VisualizarProjetoScreen extends StatelessWidget {
     if (tipo.contains('MOBILE')) return Colors.purple;
     if (tipo.contains('API')) return Colors.orange;
     return Colors.blue;
+  }
+
+  String _formatarOrcamento(double? valor) {
+    if (valor == null) return "Não estimado";
+    return NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(valor);
+  }
+
+  ({String label, Color bg, Color fg}) _complexidadeInfo() {
+    switch (projeto.complexidade) {
+      case ComplexidadeProjeto.alta:
+        return (label: "Alta", bg: Colors.red.shade100, fg: Colors.red.shade700);
+      case ComplexidadeProjeto.media:
+        return (label: "Média", bg: Colors.orange.shade100, fg: Colors.orange.shade700);
+      case ComplexidadeProjeto.baixa:
+        return (label: "Baixa", bg: Colors.green.shade100, fg: Colors.green.shade700);
+      default:
+        return (label: "Não definida", bg: Colors.grey.shade200, fg: Colors.grey.shade700);
+    }
   }
 
   @override
@@ -94,11 +113,14 @@ class VisualizarProjetoScreen extends StatelessWidget {
                                     Row(
                                       children: [
                                         Expanded(child: _InfoLabel(label: "Tipo de Projeto", value: projeto.tipo ?? "Geral")),
-                                        _StatusTag(label: "Complexidade", value: "Alta", color: Colors.red.shade100, textColor: Colors.red.shade700),
+                                        Builder(builder: (context) {
+                                          final complexidade = _complexidadeInfo();
+                                          return _StatusTag(label: "Complexidade", value: complexidade.label, color: complexidade.bg, textColor: complexidade.fg);
+                                        }),
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    _InfoLabel(label: "Escopo", value: "Desenvolvimento completo do sistema incluindo módulos de gestão, documentação e testes."),
+                                    _InfoLabel(label: "Escopo", value: projeto.escopo ?? "Escopo não definido."),
                                   ],
                                 ),
                               ),
@@ -166,7 +188,7 @@ class VisualizarProjetoScreen extends StatelessWidget {
                                           ],
                                         ),
                                         const SizedBox(height: 8),
-                                        Text("R\$ 500.000,00", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
+                                        Text(_formatarOrcamento(projeto.orcamentoEstimado), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
                                       ],
                                     ),
                                   ),

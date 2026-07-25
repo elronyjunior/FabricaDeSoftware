@@ -251,11 +251,10 @@ class ApiService {
   // Novo método para buscar os IDs das tecnologias do projeto
   static Future<List<int>> getTecnologiasDoProjeto(int projetoId) async {
     try {
-      // Ajuste a URL conforme sua rota no index.js: 
-      // app.get("/api/tecnologias-projeto/projeto/:projeto_id", ...)
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/tecnologias-projeto/projeto/$projetoId');
-      
-      final response = await http.get(url, headers: ApiConfig.headers);
+      final url = Uri.parse('${ApiConfig.baseUrl}/tecnologias-projeto/projeto/$projetoId');
+      final headers = await _getHeaders();
+
+      final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);

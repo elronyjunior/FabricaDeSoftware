@@ -1,13 +1,9 @@
 class ApiConfig {
   static const String baseUrl = 'http://localhost:3000/api';
 
-  static const Map<String, String> headers = {
-    'Content-Type': 'application/json',
-  };
-
   static Map<String, String> getAuthHeaders(String? token) {
     return {
-      ...headers,
+      'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
