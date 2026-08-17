@@ -226,6 +226,6 @@ ALTER TABLE "tecnologias_projeto" ADD CONSTRAINT "tecnologias_projeto_tecnologia
 ALTER TABLE "tecnologias_projeto" ADD CONSTRAINT "tecnologias_projeto_projeto_id_fkey" FOREIGN KEY ("projeto_id") REFERENCES "projetos" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 ALTER TABLE "tecnologias_projeto" ADD CONSTRAINT "tecnologias_projeto_aprovado_por_id_fkey" FOREIGN KEY ("aprovado_por_id") REFERENCES "usuarios" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "testes" ADD CONSTRAINT "testes_projeto_id_fkey" FOREIGN KEY ("projeto_id") REFERENCES "projetos" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
-ALTER TABLE "treinamentos" ADD CONSTRAINT "treinamentos_projeto_id_fkey" FOREIGN KEY ("projeto_id") REFERENCES "projetos" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE "treinamentos" ADD CONSTRAINT "treinamentos_projeto_id_fkey" FOREIGN KEY ("projeto_id") REFERENCES "projetos" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 ALTER TABLE "treinamentos" ADD CONSTRAINT "treinamentos_criado_por_id_fkey" FOREIGN KEY ("criado_por_id") REFERENCES "usuarios" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "treinamentos" ADD CONSTRAINT "treinamentos_documento_id_fkey" FOREIGN KEY ("documento_id") REFERENCES "documentos" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
